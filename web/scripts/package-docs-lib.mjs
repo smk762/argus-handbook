@@ -13,6 +13,9 @@ import { posix } from "node:path";
  * the recorded commit. They are not imported (the package page says so and
  * links them on GitHub); `docs:pull` still gates them and says when one passes,
  * so it can move back to `docs` once the fix lands in the package's dev branch.
+ *
+ * @typedef {{ short: string, package: string, repo: string, docs: string[], held?: string[], titles?: Record<string, string> }} PackageEntry
+ * @type {PackageEntry[]}
  */
 export const PACKAGES = [
   {
@@ -49,10 +52,8 @@ export const PACKAGES = [
     ],
   },
   // DESIGN.md is quarry's design doc (status, rationale, where the build diverged), its only page beyond the README.
-  // Held (2026-11-14): README.md names host mount paths (fix: smk762/argus-quarry#36).
-  { short: "quarry", package: "argus-quarry", repo: "smk762/argus-quarry", docs: ["DESIGN.md"], held: ["README.md"] },
-  // Held (2026-11-14): README.md names a host mount path.
-  { short: "forge", package: "argus-forge", repo: "smk762/argus-forge", docs: [], held: ["README.md"] },
+  { short: "quarry", package: "argus-quarry", repo: "smk762/argus-quarry", docs: ["README.md", "DESIGN.md"] },
+  { short: "forge", package: "argus-forge", repo: "smk762/argus-forge", docs: ["README.md"] },
   { short: "proof", package: "argus-proof", repo: "smk762/argus-proof", docs: ["README.md"] },
   {
     short: "atlas",

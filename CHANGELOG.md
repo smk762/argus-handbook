@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- argus-quarry's and argus-forge's READMEs, no longer held: their host mount paths were replaced upstream (smk762/argus-quarry#36, smk762/argus-forge#39).
 - The site: a Next.js static export in `web/`, served at https://docs.dragonhound.dev. Moved from argus-studio's `/docs` (smk762/argus-studio#170, #172), with the `/docs` prefix dropped:
   - **Setup and services** (`/setup/`): the overview, moderation, what to run for which UI, and one page per external service, from the service registry (`web/src/content/services.ts`).
   - **Packages** (`/packages/`): each package's README and `docs/` pages, imported from its `dev` branch at a recorded commit by `npm run docs:pull`, held to the record by `npm run docs:check`, and gated by the docs opsec check.

@@ -155,33 +155,43 @@
       "package": "argus-quarry",
       "repo": "smk762/argus-quarry",
       "branch": "dev",
-      "commit": "9370dbd01973a241a7c50c573983ca377ae70b56",
-      "version": "0.4.1.dev5+g9370dbd",
+      "commit": "4d25ef6b9c95f0c5329c73ce62d906438efd90bf",
+      "version": "0.4.1.dev7+g4d25ef6",
       "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-quarry"
+        },
         {
           "file": "DESIGN.md",
           "slug": "design",
           "title": "argus-quarry — Design Doc (Draft)"
         }
       ],
-      "held": [
-        "README.md"
-      ],
+      "held": [],
       "files": {
-        "src/content/packages/quarry/DESIGN.md": "63061567a3b57d0c05b305c30f149b3b1521bdba4597ca90d0d55321d8c2f2f4"
+        "src/content/packages/quarry/DESIGN.md": "63061567a3b57d0c05b305c30f149b3b1521bdba4597ca90d0d55321d8c2f2f4",
+        "src/content/packages/quarry/README.md": "f4911f8e1289adec17669e24affb4fa837bd98c065580e4f9ee6db43117586a8"
       }
     },
     "forge": {
       "package": "argus-forge",
       "repo": "smk762/argus-forge",
       "branch": "dev",
-      "commit": "44e7e6baca849edafadf03d0f711894631ed65a3",
-      "version": "0.2.1.dev5+g44e7e6b",
-      "pages": [],
-      "held": [
-        "README.md"
+      "commit": "4fb8a8a7e29fb8452d94e0a351c536ecb06b4a69",
+      "version": "0.2.1.dev7+g4fb8a8a",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-forge"
+        }
       ],
-      "files": {}
+      "held": [],
+      "files": {
+        "src/content/packages/forge/README.md": "3f6258819abbbba620991d79a5deeee2c6510b8a6b649cd31a678855599af88f"
+      }
     },
     "proof": {
       "package": "argus-proof",

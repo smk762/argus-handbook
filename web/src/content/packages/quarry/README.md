@@ -1,0 +1,457 @@
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/smk762/argus-cortex/dev/brand/packages/quarry/argus-quarry-lockup-dark.svg">
+    <img alt="Argus Quarry" src="https://raw.githubusercontent.com/smk762/argus-cortex/dev/brand/packages/quarry/argus-quarry-lockup-light.svg" height="52">
+  </picture>
+</h1>
+
+[![PyPI](https://img.shields.io/pypi/v/argus-quarry)](https://pypi.org/project/argus-quarry/)
+[![Python](https://img.shields.io/pypi/pyversions/argus-quarry)](https://pypi.org/project/argus-quarry/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/smk762/argus-quarry/actions/workflows/ci.yml/badge.svg)](https://github.com/smk762/argus-quarry/actions/workflows/ci.yml)
+
+**Provenance-first acquisition of public-domain / CC0 images** — the *input
+stage* of the Argus suite. The quarry digs up raw material: it downloads images
+from upstream archives and lands them, **with full provenance and licensing**,
+into a folder the rest of the suite already consumes (`DATASET_DIR` →
+`/data/images`).
+
+Subjects are grouped into LoRA-training **categories** — `identity` (people),
+`wardrobe` (garments), `setting` (scenes/environments) and `concept`
+(styles/themes) — and everything lands sorted into `<category>/<subject>/`
+subfolders. A category is independent of identity: a subject can be *Mark Twain*,
+a *red dress*, a *modern kitchen*, or *cyberpunk*.
+
+It is deliberately lean — *acquisition + provenance, nothing more*. Quality
+scoring, near-duplicate detection, faces, embeddings and captioning are owned
+downstream by [argus-curator](https://github.com/smk762/argus-curator) and
+[argus-lens](https://github.com/smk762/argus-lens); quarry never re-implements
+them.
+
+> **Want a UI?** Quarry has no UI of its own (see [DESIGN.md](DESIGN.md) §9), but
+> `argus-quarry serve` exposes an [HTTP API](#http-server) that the suite's web
+> frontend — [**argus-studio**](https://github.com/smk762/argus-studio) — uses for
+> its `/gallery` view. Studio also surfaces the curation and captioning stages that
+> consume quarry's output (e.g. its `/curate` view scans the `<category>/<subject>/`
+> tree quarry publishes).
+
+```
+argus-quarry (NEW)          argus-curator (:8101)        argus-lens (:8100)        argus-studio
+─ download  ─┐              ─ scan + score  ─┐           ─ caption ─┐              ─ web UI (:3000)
+─ verify    ─┤   images +   ─ near-dup      ─┤  manifest ─ buckets ─┤   dataset    ─ /curate
+─ provenance┤   provenance  ─ face-cluster  ─┤           ─ (ident/ ─┤   → LoRA     ─ caption
+─ SHA256    ─┴───────────►  ─ select+export ─┴──────────►  wardrobe)─┘
+   /data/images (DATASET_DIR) ─────────────────────────────────────────────────►
+```
+
+See [DESIGN.md](DESIGN.md) for the full rationale and phased plan.
+
+## Why it exists
+
+- **Provenance-first.** Every image carries its source URL, landing page,
+  licence and attribution. A record with no *accepted* licence (PD / CC0) is
+  **quarantined, never landed**.
+- **Idempotent.** Exact-dedup by SHA256 (`UNIQUE` in the DB) and a `status`
+  lifecycle mean reruns resume partials and never duplicate bytes.
+- **Bounded.** A per-file megapixel cap (larger images are downscaled on landing)
+  and a total-archive GB budget keep the pool predictable; the full-resolution URL
+  is always retained for later re-fetch. There is no per-file *byte* cap on
+  downloads.
+- **Source-independent.** Every downloader yields the same `SourceRecord`, so
+  the pipeline never learns which archive a file came from.
+- **Category-sorted.** Subjects carry a category (identity / wardrobe / setting /
+  concept) and land under `<category>/<subject>/`, so one pool serves every LoRA
+  workflow.
+
+## Install
+
+```bash
+pip install argus-quarry            # library + downloaders
+pip install "argus-quarry[cli]"     # + the argus-quarry command
+pip install "argus-quarry[phash]"   # + opportunistic perceptual-hash metadata
+pip install "argus-quarry[server]"  # + the read-only provenance HTTP API (serve)
+pip install "argus-quarry[archives]"     # + PD12M / Megalith metadata search (DuckDB)
+pip install "argus-quarry[embeddings]"   # + PD12M vector index and "more like this" (faiss, numpy)
+pip install "argus-quarry[search]"       # + text queries by meaning (CLIP text tower: transformers, torch)
+```
+
+For development the suite uses [uv](https://docs.astral.sh/uv/) (works on PEP 668
+"externally managed" system Pythons):
+
+```bash
+make dev                            # uv venv + editable install (dev + cli extras)
+# or, manually:
+uv venv && uv pip install -e ".[dev,cli]"
+```
+
+## Quickstart
+
+```bash
+# Inspect the curated subject seeds (all categories, or one)
+argus-quarry subjects
+argus-quarry subjects --category wardrobe
+
+# Fetch from Wikimedia Commons into the raw pool, then publish a curator-ready,
+# CC0/PD-only tree into $DATASET_DIR (symlinks by default). Omit --category to
+# harvest every category (identity + wardrobe + setting + concept).
+argus-quarry run --source commons --limit 20 --export --licence CC0,PD
+argus-quarry run --category concept --limit 20 --export   # just one category
+
+# Or split the two stages
+argus-quarry fetch --source commons --limit 20
+argus-quarry export --dest ./data --licence CC0,PD   # add --copy to avoid symlinks
+
+# Inspect what you have
+argus-quarry stats
+argus-quarry list --category setting --licence CC0
+argus-quarry verify              # re-check files decode + match recorded SHA256
+```
+
+> Installed into a `uv` venv? Prefix commands with `uv run` (e.g.
+> `uv run argus-quarry stats`) or `source .venv/bin/activate` first.
+
+## CLI
+
+| Command | What it does |
+|---|---|
+| `run`    | Fetch into the raw pool, then (optionally) publish — the compose entrypoint |
+| `fetch`  | Download candidates into the raw pool (no publish) |
+| `export` | Publish a filtered `<category>/<subject>/` tree into `DATASET_DIR` (symlink / `--copy`) |
+| `list`   | List landed photographs with provenance (filter by source / licence / category / subject) |
+| `stats`  | Counts by status / category / source / licence + raw-pool size |
+| `verify` | Re-check landed files exist, decode, and match their recorded SHA256 |
+| `subjects` | Show the subject seed(s) downloaders harvest around (filter by `--category`) |
+| `serve`  | Start the read-only provenance HTTP API on `:8102` (needs the `server` extra) |
+| `archives status` | Show each [archive](#public-domain-archives)'s configured dir, presence, index state and item count |
+| `archives index [NAMES…]` | Build (or rebuild) the DuckDB search index under `$QUARRY_HOME/cache/archives/`; `--threads` (default: all cores), `--memory-limit` (DuckDB ceiling; past it, joins spill to disk); `--embeddings` also builds PD12M's [vector index](#semantic-search-pd12m), `--embeddings-only` builds just that |
+| `archives search NAME` | Search an indexed archive: `--q`, `--exclude`, `--collection` (repeatable), `--min-short-side`, `--semantic TEXT` or `--similar-to ID` (rank by meaning / likeness), `--limit` |
+| `archives fetch SPEC` | Land a slice JSON through normal ingest; `--dry-run` lists what would be fetched |
+| `archives mirror-index` | Index tar-member offsets in Megalith's [Drawthings mirror](#megalith-mirror) so slices can fall back to it (resumable); `--shards 0-99`, `--workers`, `--rps` |
+
+`run`, `fetch`, `export` and `list` all accept `--category`
+(`identity` / `wardrobe` / `setting` / `concept`); with none given they span every category.
+A hidden `people` command remains as a backward-compatible alias from the pre-0.2,
+identity-only releases (use `subjects --category identity`).
+
+## Layout produced
+
+Quarry fetches into a **raw pool** it fully owns (`$QUARRY_HOME`, a sibling
+side-car dir), then `export` publishes a clean tree into `DATASET_DIR`:
+
+```
+$QUARRY_HOME/                          # side-car state — NEVER scanned by curator
+├── images/
+│   ├── identity/Albert_Einstein/…      # the raw pool, sorted by <category>/<subject>/
+│   ├── wardrobe/Red_dress/…
+│   ├── setting/Modern_kitchen/…
+│   └── concept/Cyberpunk/…
+├── metadata/portraits.sqlite          # provenance DB (subjects + photographs)
+├── cache/  logs/
+
+$DATASET_DIR/                          # published, curator-ready view (via export)
+├── identity/Albert_Einstein/…          # symlinks (default) or copies into the pool
+└── wardrobe/Red_dress/…
+```
+
+## Provenance model
+
+A single SQLite database (`portraits.sqlite`, WAL mode) with two tables:
+
+- **`subjects`** — `name · category · wikidata_id · birth_year · death_year · occupation`
+  (the identity-only columns stay `NULL` for wardrobe / setting / concept subjects)
+- **`photographs`** — `category · title · photographer · year · source · source_url ·
+  licence · attribution · width · height · file_size · filename ·
+  **sha256 (UNIQUE)** · phash · remote_url · fetched_from · status · downloaded_at`
+
+`remote_url` is the source's own full-resolution URL, always kept so a file can
+be re-fetched at original size; it is also the resume key. `fetched_from` is set
+only when a mirror served the bytes because the source no longer had them, and
+names that mirror; a `#bytes=START-END` fragment marks a range within a larger
+file (see [Megalith mirror](#megalith-mirror)). `sha256` is the exact-dedup key (idempotent reruns); `status`
+(`pending → downloading → complete`, plus `duplicate` / `quarantined` / `failed`)
+tracks resumability. `phash` is recorded opportunistically and is *informational
+only* — it never drives dedup here (that's [argus-curator](https://github.com/smk762/argus-curator)'s job).
+
+## Configuration
+
+Copy `.env.example` to `.env`. Key knobs:
+
+| Env | Default | Meaning |
+|---|---|---|
+| `QUARRY_HOME` | `./quarry` | Raw pool + DB + cache + logs (side-car dir) |
+| `QUARRY_MAX_GB` | `40` | Total raw-pool ceiling; `0` = unlimited |
+| `QUARRY_MAX_MEGAPIXELS` | `12` | Per-file resolution cap; larger images are downscaled on landing |
+| `COMMONS_USER_AGENT` | descriptive default | Polite UA (Commons/LoC expect one) |
+| `QUARRY_USER_AGENT` | _(unset)_ | Fallback UA, used when `COMMONS_USER_AGENT` is unset |
+| `DATASET_DIR` | `./data` | Published view `export` writes into |
+| `QUARRY_PD12M_DIR` / `QUARRY_MEGALITH_DIR` | _(unset)_ | Archived metadata for the [archives](#public-domain-archives) (`<root>/pd12m`, `<root>/megalith`) |
+| `QUARRY_ALLOW_FETCH` | _(unset = off)_ | Let `POST /archives/{name}/fetch` land a slice from the server |
+| `QUARRY_CORS_ORIGINS` | _(unset)_ | Comma-separated browser origins for `serve` (same as `--cors-origin`). Required for a studio to POST slice fetches; replaces `--cors`'s read-only `*` |
+
+## HTTP server
+
+A tiny provenance API (FastAPI) over the raw pool. It is read-only apart from
+one opt-in route, the archive slice fetch, which is refused unless
+`QUARRY_ALLOW_FETCH=1` (see [Public-domain archives](#public-domain-archives)).
+It powers the
+[argus-studio](https://github.com/smk762/argus-studio) `/gallery` view, the same
+way `/curate` talks to argus-curator on `:8101`.
+
+```bash
+pip install "argus-quarry[server]"          # fastapi + uvicorn
+argus-quarry serve --host 0.0.0.0 --port 8102 --cors
+```
+
+`--cors` allows any origin, read-only. The fetch route needs an explicit list,
+because `POST` is never granted to `*`: pass `--cors-origin http://localhost:3000`
+(repeatable) or set `QUARRY_CORS_ORIGINS`. A list replaces the wildcard, so name
+every origin the studio is opened from.
+
+The published image ships the `server` extra and serves by default on `:8102`:
+
+```bash
+docker run --rm -p 8102:8102 -v "$PWD/quarry:/data/quarry" \
+  -e QUARRY_HOME=/data/quarry ghcr.io/smk762/argus-quarry:latest
+```
+
+The entrypoint is still `argus-quarry`, so any acquisition subcommand works by
+overriding the command (`docker run ... ghcr.io/smk762/argus-quarry fetch …`).
+
+The pool root comes from `$QUARRY_HOME` (default `./quarry`), exactly like every
+other command — the compose service just sets `QUARRY_HOME=/data/quarry`.
+
+Serving never mutates the provenance data — on any mount. The DB is opened
+through a `mode=ro` SQLite URI, which still tracks a concurrently running `fetch`
+through the WAL; the server never migrates, relocates, or writes a row, so
+pointing it at an empty or unmigrated pool reports `503` rather than quietly
+building one.
+
+It is not wholly side-effect-free on a *writable* mount, though: `mode=ro` lets
+SQLite create the `-wal`/`-shm` sidecars it uses to follow the WAL, and a
+read-only connection can never checkpoint or unlink them, so those two files
+persist beside the DB (reused across opens, not accumulated — two files, not
+unbounded growth; issue #9). Mounting the pool `:ro` avoids them entirely:
+
+```bash
+docker run --rm -p 8102:8102 -v "$PWD/quarry:/data/quarry:ro" \
+  -e QUARRY_HOME=/data/quarry ghcr.io/smk762/argus-quarry:latest
+```
+
+A read-only *directory* also stops SQLite creating the `-shm` sidecar `mode=ro`
+needs, so on that mount quarry falls back to `immutable=1`, which needs no
+sidecars. `immutable=1` cannot see a `-wal`, so it is used only when there is
+none: a pool snapshotted mid-write, or left behind by a killed `fetch`, answers
+`503` instead of silently serving stale counts. Checkpoint it
+(`sqlite3 portraits.sqlite 'PRAGMA wal_checkpoint(TRUNCATE)'`), or mount the pool
+writable, and it serves normally.
+
+The image runs as a non-root user (uid `10001`), so a bind-mounted `$QUARRY_HOME`
+must be readable by that uid to serve, and writable by it for the acquisition
+subcommands (`fetch`, `run`) — e.g. `chown -R 10001:10001 quarry/` on the host.
+This keeps the read-only sidecars above, and anything the acquisition commands
+land, owned by an unprivileged uid rather than root (issues #8/#9).
+
+The read-only CLI commands (`stats`, `list`, `export`, `verify` without
+`--repair`) open the pool the same way, so they work against a `:ro` mount too.
+
+Liveness and readiness are separate. `GET /health` answers `200` whenever the
+process is up — it never touches the DB — so a container mounted at an empty
+`QUARRY_HOME` that is seeded later still comes up live. `GET /ready` opens the
+pool and answers `503` with `{"status": "unavailable", "service": "argus-quarry",
+"database": "..."}` when it cannot be served (missing, unmigrated, or an
+unreadable WAL); the `database` value is a single generic reason
+(`"provenance database unavailable"`), deliberately not a per-cause code, so it
+never leaks a filesystem path. Point an orchestrator's *readiness* probe at
+`/ready` to shed a container that is up but has no data to serve, and its
+*liveness* probe at `/health`.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /health` | Liveness: `200 {status, service, version, quarry_home, fetch_allowed}` while the process is up |
+| `GET /ready` | Readiness: `200 {status: ready, service, database: ok}`, or `503 {status: unavailable, service, database}` when the pool cannot be served |
+| `GET /stats` | Counts by status / category / source / licence + `total_bytes` (mirrors `stats`) |
+| `GET /subjects?category=` | Distinct subjects with landed photo counts: `{subjects: [{folder, category, photo_count}]}` |
+| `GET /photos?category=&subject=&licence=&source=&status=&limit=&offset=` | Paginated provenance rows: `{total, offset, limit, photos: […]}`; `status` defaults to `complete` (pass empty for all), `licence` accepts CSV (`CC0,PD`), `limit` ≤ 500 |
+| `GET /photos/{id}` | One photograph with full provenance (404 if unknown) |
+| `GET /thumb?id=&size=384` | WEBP thumbnail rendered from the pooled file (`size` = longest edge, capped at 1024) |
+
+## Public-domain archives
+
+Two large public-domain datasets can be searched and sliced without downloading
+their images. Quarry keeps their **metadata** locally (links, captions, sizes,
+licences) and lands only the slices you choose, through the same ingest
+pipeline as every other source (licence gate, SHA256 dedup, provenance).
+
+| Archive | Items | Filter on | Images come from |
+|---|---|---|---|
+| [PD12M](https://huggingface.co/datasets/Spawning/PD12M) | 12.4M | caption, institution (640), licence (CC0 / PDM), size, MIME type | the public `s3://pd12m` bucket |
+| [Megalith-10m](https://huggingface.co/datasets/madebyollin/megalith-10m) | 9.58M | Florence-2 caption (8.94M), Flickr account, size (~9.4M) | Flickr (1024px), falling back to the [Drawthings mirror](#megalith-mirror) |
+
+Megalith's links are a shuffled sample, so the Flickr account is its only built-in
+grouping. It also has no per-photo licence column, so each record states the
+dataset's licence filter as its licence label.
+
+```bash
+# 1. archive the metadata (~45 GB incl. PD12M's CLIP embeddings; resumable; no photos)
+HF_TOKEN=hf_... uv run scripts/fetch_public_domain_metadata.py --root <ARCHIVE_ROOT>
+# 2. point quarry at it and build the search index (DuckDB, under $QUARRY_HOME/cache/archives/)
+export QUARRY_PD12M_DIR=<ARCHIVE_ROOT>/pd12m QUARRY_MEGALITH_DIR=<ARCHIVE_ROOT>/megalith
+pip install "argus-quarry[cli,archives]"
+argus-quarry archives index
+argus-quarry archives search pd12m --q "harbour boats" --min-short-side 1024
+# 3. land a slice saved from argus-studio's /gallery -> Sources (or written by hand)
+argus-quarry archives fetch slice.json            # --dry-run lists the URLs first
+```
+
+**Tone, medium and year** are read from each caption when the index is built, because neither dataset records them per image. They're cues, not ground truth: an item whose caption doesn't say is left out when you filter on them.
+
+| Filter | Derived from | PD12M | Megalith |
+|---|---|---|---|
+| `tone` = `bw` / `color` | "black and white", "monochrome", "sepia" … versus colour words | 3.56M bw, 4.31M colour | 0.66M bw, 7.02M colour |
+| `medium` = `photo`, `painting`, `drawing`, `print`, `map`, `text`, `object` | the caption's opening words ("The image shows a black and white photo of …") | ~5.1M labelled | photo unless the caption says otherwise (Megalith filtered out non-photos) |
+| `year_min` / `year_max` | the first year or decade a caption mentions | 61k | 128k |
+
+Neither archive carries capture dates (Megalith's archived EXIF has none), so the year filter only finds images whose caption states a year. Rebuild old indexes after upgrading: an index from an older quarry reports `stale` and asks for `archives index`.
+
+Caption terms (`q`, `exclude`, `--q`, `--exclude`) are case-insensitive substrings. Every term in `q` must appear and none in `exclude` may; `"quoted phrases"` stay whole, and a leading `-` in `q` excludes a term (`harbor boats -painting`). An uncaptioned item doesn't mention anything, so an exclusion keeps it.
+
+A slice is a query plus where it lands:
+
+```json
+{"archive": "pd12m", "category": "setting", "subject": "Harbour_views", "limit": 200,
+ "query": {"q": "harbour boats", "collections": ["Rijksmuseum"], "min_short_side": 1024, "sort": "largest"}}
+```
+
+### Semantic search (PD12M)
+
+PD12M publishes a CLIP ViT-L/14 embedding for every image, row-aligned with its
+metadata. With a vector index built from them, an archive search can rank **by
+meaning** (`semantic="a woman in a wool coat, outdoors"`) or **by example**
+(`similar_to=<item id>`, "more like this"), combined with any of the filters
+above. `similar_to` also finds near-duplicates before anything is downloaded:
+re-uploads of the same image score about 0.95 or higher.
+
+```bash
+pip install "argus-quarry[cli,search]"       # [embeddings] is enough for the build and similar_to
+argus-quarry archives index pd12m --embeddings-only   # reuses the metadata index; or --embeddings for both
+argus-quarry archives search pd12m --semantic "a woman in a wool coat, outdoors" --min-short-side 1024
+argus-quarry archives search pd12m --similar-to <id>
+```
+
+- **The build** streams the 13 `.npy` files once, in chunks, so its memory stays
+  bounded (3.4 GB peak on the real archive). It writes an IVF-PQ index (FAISS, 1.3 GB) and a float16
+  copy of the embeddings (19 GB) under `$QUARRY_HOME/cache/archives/`. The copy
+  is local because a random row read from a NAS share costs about 40 ms, and
+  every query rescores its candidates exactly from it. On the real archive the
+  build took 13 minutes with 8 threads. A rebuild swaps in atomically, like the metadata index.
+- **A query** finds candidates in the IVF-PQ index and rescores them exactly.
+  Filters are applied inside the vector search, so a narrow filter still fills
+  its page. When 20,000 items or fewer match, all of them are scored exactly.
+  Results come best first. `total` counts the matching items, capped at 5,000
+  (a ranked query or slice goes no deeper), and `sort` is ignored. Measured on
+  the real 12.4M set: about 0.5 s cold and 0.15 s warm, with or without
+  collection / tone / size / medium filters, plus about 40 ms to encode the text.
+  Caption terms (`q`) add their usual substring scan (about 1.5 s), and ranking
+  a full 5,000-item slice takes about 5 s.
+- **Text queries** need the OpenAI `clip-vit-large-patch14` text tower, the model
+  PD12M's embeddings came from. It loads on the first query (about 10 s and
+  0.5 GB, CPU unless CUDA is available) from the Hugging Face cache, or from the path in
+  `QUARRY_CLIP_MODEL`. `similar_to` needs no model.
+- A saved slice keeps its `semantic` / `similar_to`, so `archives fetch` lands
+  the top `limit` items in ranked order.
+- Megalith publishes no embeddings, so it has no semantic search; computing them
+  would mean downloading every image.
+
+The server exposes the same thing over HTTP. Every route is `GET` except the fetch:
+
+| Route | Returns |
+|---|---|
+| `GET /archives` | each archive's status (`configured`, `present`, `indexed`, `items`, and `semantic`: `{indexed, vectors, model, built_at}` or `null` when the archive has no embeddings) and `fetch_allowed` |
+| `GET /archives/{name}/facets` | collections, licences and MIME types with counts |
+| `GET /archives/{name}/search?q=&exclude=&collection=&licence=&mime=&min_width=&min_height=&min_short_side=&orientation=&sized_only=&tone=&medium=&year_min=&year_max=&ids=&sort=&limit=&offset=` | `{total, offset, limit, items}`; `sort` is `shuffle` (fixed per index) or `largest`. Repeat `collection` or comma-join it with no space after the comma (institution names like `Natural History Museum, Berlin` keep theirs); `medium` must be one of `photo`, `painting`, `drawing`, `print`, `map`, `text`, `object` (422 otherwise). Add `semantic=<text>` or `similar_to=<id>` to [rank by similarity](#semantic-search-pd12m): then `ranked` is true and each item has a `score` |
+| `GET /archives/{name}/items/{id}` | one item |
+| `GET /archives/{name}/thumb?id=&size=` | WEBP rendered in memory (PD12M), or a 307 to Flickr's own 500px rendition (Megalith) |
+| `GET /archives/{name}/slice?<search filters>&category=&subject=&limit=` | `{slice, matches, will_fetch, command, fetch_allowed}` |
+| `POST /archives/{name}/fetch` (slice JSON body) | NDJSON `start` / `item` / `done` or `error` frames (an `item` frame's `fetched_from` is the URL the bytes came from); **403 unless `QUARRY_ALLOW_FETCH=1`**, with the slice and CLI command in the body; 409 while another fetch runs |
+
+### Megalith mirror
+
+Flickr photos whose owners have since deleted them or made them private return
+404 / 410 / 403. [drawthingsai/megalith-10m](https://huggingface.co/datasets/drawthingsai/megalith-10m)
+holds ~9.4M of the 9.58M images as 1024px JPEGs in 959 tar shards (~1.9 TB), and
+Hugging Face serves byte ranges, so quarry can fetch a single image from its shard
+once it knows where the image sits in it:
+
+```bash
+argus-quarry archives mirror-index                 # all 959 shards; resumable
+argus-quarry archives mirror-index --shards 0-99   # or a few at a time
+```
+
+This walks each shard's tar headers with range reads, about one 8 KB read per
+image, roughly 9.4M requests in all. `--rps` (default 20) caps the request rate
+across `--workers` (default 4). Each shard's offsets are saved once that shard is
+done, so an interrupted run picks up at the next unscanned shard, and a shard that
+fails is retried by the next run. The offsets are pinned to the dataset revision
+in the archived `SOURCE.json`. They live under `$QUARRY_HOME/cache/archives/`
+(`megalith-mirror/` plus the `megalith-mirror.duckdb` lookup table), and
+`archives status` shows progress.
+
+Once indexed, a Megalith slice tries Flickr first and, if Flickr reports the photo
+gone (403 / 404 / 410), fetches the mirror copy instead. Other failures (timeouts,
+5xx) don't fall back. Set `"prefer_mirror": true` on a slice to fetch from the
+mirror first and touch Flickr only for photos the mirror lacks, which is kinder to
+Flickr for bulk pulls. The licence gate and SHA256 dedup apply as usual. A
+photograph that came from the mirror keeps the Flickr image as its `remote_url` and
+records the pinned shard URL plus the byte range as its `fetched_from`
+(`https://huggingface.co/datasets/drawthingsai/megalith-10m/resolve/<rev>/00042.tar#bytes=START-END`),
+and keeps the Flickr page as its `source_url`. The fragment is never sent to the
+server; quarry turns it back into a `Range` request, so the recorded URL alone
+re-fetches the same bytes.
+
+## Suite integration
+
+Quarry ships a `gallery` profile in the suite's
+[argus-studio](https://github.com/smk762/argus-studio) `compose.yaml`.
+It's a run-to-completion job: fetch into the pool, publish into `DATASET_DIR`,
+then let curator/lens (and the web UI's `/curate` view) consume the result.
+
+```bash
+docker compose --profile gallery up --build   # fetch → pool → publish DATASET_DIR
+docker compose --profile curator up --build    # then curate the published images
+```
+
+> The published tree symlinks back into `QUARRY_HOME/images`. For those links to
+> resolve inside the curator/lens containers, mount `QUARRY_HOME` read-only there
+> too, or run `export --copy`.
+
+## Sources
+
+| Source | Status |
+|---|---|
+| Wikimedia Commons | **Phase 1 (implemented)** |
+| Library of Congress, Smithsonian, Rijksmuseum, LAC (Karsh allow-list) | Phase 2 |
+| Europeana, Flickr Commons (strict per-record rights) | Phase 3 |
+| PD12M, Megalith-10m | **Archives (implemented)**: searched locally, landed by slice |
+
+New sources register in `downloaders/` behind a common `Downloader` contract, so
+adding one never touches ingest, storage, or export.
+
+## Development
+
+```bash
+make lint     # ruff
+make test     # pytest
+make check    # lint + test + build
+```
+
+## Related projects
+
+- [**argus-studio**](https://github.com/smk762/argus-studio) — the suite's Next.js web UI (captioning + `/curate`).
+- [**argus-curator**](https://github.com/smk762/argus-curator) — training-suitability scoring, near-dup dedup, face clustering.
+- [**argus-lens**](https://github.com/smk762/argus-lens) — intent-aware, multi-model captioning.
+
+## Licence
+
+MIT — see [LICENSE](LICENSE). Note: the MIT licence covers *this software*, not
+the images it downloads. Image licences are recorded per-record and enforced at
+ingest.
