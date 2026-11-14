@@ -1,0 +1,97 @@
+name: CI
+
+# The gate for every PR and every push to dev and main: the imported package
+# docs match their record and pass the opsec gate, lint, typecheck, the vitest
+# suite, the static export, the 390 px phone check over every route, and the
+# vendored Dragonhound shared layer is unedited. deploy.yml runs after this
+# succeeds on a push to dev.
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      # Fails if the imported package docs (src/content/packages, public/package-docs)
+      # no longer match schema/docs.json, or fail the opsec gate. Offline.
+      - run: npm run docs:check
+        env:
+          DOCS_OPSEC_DENYLIST: ${{ secrets.DOCS_OPSEC_DENYLIST }}
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      # Includes the docs opsec gate over every page (src/lib/docsOpsec.test.ts).
+      # The private denylist is a secret, never committed; it is empty on fork PRs.
+      - run: npm test
+        env:
+          DOCS_OPSEC_DENYLIST: ${{ secrets.DOCS_OPSEC_DENYLIST }}
+
+  # The static export must not scroll sideways on a phone: every route at
+  # 390 px, light and dark, with no console errors or CSP violations, and the
+  # shared theme script (dh-theme.js) must run, toggle and apply a saved choice
+  # before first paint. Playwright is installed here only; the site doesn't
+  # depend on it.
+  static-overflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npm install --no-save playwright@1.65.0 && npx playwright install --with-deps chromium
+
+      - run: npm run check:overflow
+
+  # The Dragonhound shared design layer (web/vendor/dh) is vendored from
+  # dragonhound-site/shared and must not be edited here. Fails if a vendored file
+  # changed locally or no longer matches the published v1 manifest; a newer
+  # upstream version is only a warning (re-sync in its own PR).
+  dh-shared:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.23.4"
+
+      - run: node web/vendor/dh/sync-shared.mjs --check . --against https://dragonhound.dev/brand/v1/manifest.json --allow-outdated

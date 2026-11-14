@@ -1,0 +1,71 @@
+import { pageMetadata } from "@/lib/pageMeta";
+import { PackageIndex } from "@/components/docs/PackageIndex";
+
+export const metadata = pageMetadata({
+  title: "Argus docs",
+  path: "/",
+  description:
+    "Docs for the Argus suite: what each package does, the services it depends on and how to set them up, and each package's own docs.",
+});
+
+# Argus docs
+
+**Argus** is a suite of small, separately released tools that take images from
+raw to a trained and evaluated LoRA, and then put it to work. Each stage is its
+own Python package with its own HTTP service, and
+[Argus Studio](https://studio.dragonhound.dev/) is the web UI that ties them together:
+
+- [**argus-quarry**](/packages/quarry) acquires public-domain and CC0 images with their provenance
+  ([Gallery](https://studio.dragonhound.dev/gallery/)).
+- [**argus-curator**](/packages/curator) scores, de-duplicates and moderates them into a training set
+  ([Curate](https://studio.dragonhound.dev/curate/)).
+- [**argus-lens**](/packages/lens) writes structured, training-ready captions
+  ([Caption](https://studio.dragonhound.dev/)).
+- [**argus-forge**](/packages/forge) turns a curated export into a ready-to-run training config
+  ([Forge](https://studio.dragonhound.dev/forge/)).
+- [**argus-proof**](/packages/proof) evaluates the trained LoRA and feeds findings back
+  ([Proof](https://studio.dragonhound.dev/proof/)).
+- [**argus-atlas**](/packages/atlas) bakes a georeferenced fantasy map from real terrain
+  ([Atlas](https://studio.dragonhound.dev/atlas/)).
+- [**argus-darkroom**](/packages/darkroom) generates images with a guard before and after, and a
+  record of every attempt ([Darkroom](https://studio.dragonhound.dev/darkroom/)).
+- [**argus-cortex**](/packages/cortex) is the shared foundation the others build on: the taxonomy,
+  wire-schema versioning, moderation clients and the optional lineage, vector
+  and blob stores.
+
+These pages cover the whole suite. The concept pages for the Caption tool's
+controls stay next to the tool, in Studio:
+[target style](https://studio.dragonhound.dev/docs/captioning/target-style/),
+[target backend](https://studio.dragonhound.dev/docs/captioning/target-backend/),
+[target category](https://studio.dragonhound.dev/docs/captioning/target-category/) and
+[prose enrichment](https://studio.dragonhound.dev/docs/captioning/prose-enrichment/).
+
+## Setup and services
+
+The packages lean on services they don't ship: ComfyUI, Ollama, NudeNet,
+SingGuard, Hugging Face models and a GPU host.
+
+- [Setup and services](/setup): one page per service, with who uses it, the env
+  vars, the minimal setup and the official guides.
+- [Moderation](/setup/moderation): how the suite judges images and prompts,
+  across curator, darkroom, cortex and proof.
+- [What to run for which UI](/setup/which-services): what each demo UI needs
+  live, and the no-GPU command.
+
+## Packages
+
+Each package's own README and `docs/` pages, imported from its `dev` branch at
+a recorded commit. Fixes go to the package, never to the copy here.
+
+<PackageIndex />
+
+A file that fails the docs opsec check upstream is held back, and its package
+page links it on GitHub instead.
+
+## Demos
+
+Every demo replays recorded output, so none needs a GPU or a backend:
+
+- [Studio](https://studio.dragonhound.dev/): the suite's web UI, every tool on recorded data.
+- [Lightbox](https://lightbox.dragonhound.dev/): a photo gallery navigated by argus-lens captions.
+- [Realms](https://realms.dragonhound.dev/): argus-atlas's prebaked fantasy-map mosaic.
