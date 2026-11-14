@@ -76,6 +76,10 @@ jobs:
 
       - run: npm run build
 
+      # Other repos' links into the handbook (schema/inbound.json) still land on
+      # a page and a heading id: a synced doc that renames a heading fails here.
+      - run: npm run check:inbound
+
       - run: npm install --no-save playwright@1.65.0 && npx playwright install --with-deps chromium
 
       - run: npm run check:overflow
