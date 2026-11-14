@@ -2,8 +2,9 @@ name: CI
 
 # The gate for every PR and every push to dev and main: the imported package
 # docs match their record and pass the opsec gate, lint, typecheck, the vitest
-# suite, the static export, the 390 px phone check over every route, and the
-# vendored Dragonhound shared layer is unedited. deploy.yml runs after this
+# suite, the static export, other repos' inbound links (schema/inbound.json),
+# the 390 px phone check over every route, and the vendored Dragonhound shared
+# layer is unedited. deploy.yml runs after this
 # succeeds on a push to dev.
 
 on:
@@ -75,6 +76,10 @@ jobs:
       - run: npm ci
 
       - run: npm run build
+
+      # Other repos' links into the handbook (schema/inbound.json) still land on
+      # a page and a heading id: a synced doc that renames a heading fails here.
+      - run: npm run check:inbound
 
       - run: npm install --no-save playwright@1.65.0 && npx playwright install --with-deps chromium
 

@@ -1,0 +1,21 @@
+{
+  "$comment": "Handbook pages and #anchors other repos link to (READMEs, Studio's /docs pages, Studio's redirects). scripts/check-inbound.mjs fails CI if a build no longer has one, so a heading renamed by a docs sync or an edit here cannot silently break them. Add a line when another repo starts linking a page or anchor; remove one only after every repo that links it has changed.",
+  "links": [
+    { "path": "/", "from": ["argus-studio"] },
+    { "path": "/setup/", "from": ["argus-studio", "argus-assay", "argus-cull", "argus-lightbox", "argus-safelight", "argus-sightline"] },
+    { "path": "/setup/moderation/", "from": ["argus-studio"] },
+    { "path": "/setup/which-services/", "from": ["argus-studio"] },
+    { "path": "/setup/which-services/#studio", "from": ["argus-studio"] },
+    { "path": "/setup/which-services/#lightbox", "from": ["argus-lightbox"] },
+    { "path": "/setup/which-services/#realms", "from": ["argus-atlas"] },
+    { "path": "/setup/which-services/#safelight", "from": ["argus-safelight"] },
+    { "path": "/setup/which-services/#sightline", "from": ["argus-sightline"] },
+    { "path": "/setup/which-services/#assay", "from": ["argus-assay"] },
+    { "path": "/setup/which-services/#cull", "from": ["argus-cull"] },
+    { "path": "/packages/", "from": ["argus-studio"] },
+    { "path": "/packages/lens/cli/", "from": ["argus-studio"] },
+    { "path": "/packages/lens/cli/#argus-lens-caption", "from": ["argus-studio"] },
+    { "path": "/packages/lens/caption-result/#fields", "from": ["argus-studio"] },
+    { "path": "/packages/lens/caption-result/#variants", "from": ["argus-studio"] }
+  ]
+}

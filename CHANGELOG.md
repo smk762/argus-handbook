@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- An inbound-link check (`npm run check:inbound`, in CI after the build). `web/schema/inbound.json` lists the handbook pages and `#anchors` that other repos link to: Studio's concept pages and redirects, and the UI READMEs' `which-services` anchors. CI fails if the static export no longer has one, so a synced doc that renames a heading can't silently break them.
 - argus-quarry's and argus-forge's READMEs, no longer held: their host mount paths were replaced upstream (smk762/argus-quarry#36, smk762/argus-forge#39).
 - The site: a Next.js static export in `web/`, served at https://docs.dragonhound.dev. Moved from argus-studio's `/docs` (smk762/argus-studio#170, #172), with the `/docs` prefix dropped:
   - **Setup and services** (`/setup/`): the overview, moderation, what to run for which UI, and one page per external service, from the service registry (`web/src/content/services.ts`).
