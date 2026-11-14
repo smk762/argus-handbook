@@ -1,0 +1,6 @@
+# Cloudflare Pages redirects (copied into out/ by next build).
+# These pages used to live under /docs/ on studio.dragonhound.dev; a pasted path keeps working here.
+/docs              /           301
+/docs/             /           301
+/docs/setup/*      /setup/:splat     301
+/docs/packages/*   /packages/:splat  301

@@ -1,0 +1,18 @@
+# Node (web/)
+node_modules/
+web/.next/
+web/out/
+web/.wrangler/
+web/next-env.d.ts
+*.tsbuildinfo
+.wrangler/
+
+# Local env overrides (the denylist for docs:pull, say); never committed
+.env
+.env.*
+
+.DS_Store
+
+# Local copy from `npx modern-web-guidance install`; the plugin is enabled in .claude/settings.json
+.claude/skills/
+skills-lock.json
