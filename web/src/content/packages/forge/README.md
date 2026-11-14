@@ -1,0 +1,289 @@
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/smk762/argus-cortex/dev/brand/packages/forge/argus-forge-lockup-dark.svg">
+    <img alt="argus-forge" src="https://raw.githubusercontent.com/smk762/argus-cortex/dev/brand/packages/forge/argus-forge-lockup-light.svg" height="52">
+  </picture>
+</h1>
+
+Training bridge: turn curated dataset exports into ready-to-run LoRA training configs (kohya_ss / OneTrainer / diffusers).
+
+Part of the [Argus suite](https://github.com/smk762?tab=repositories&q=argus). argus-curator's `/curate` UI already
+computes suggested SDXL hyperparameters from the selected set (size, category); forge closes the gap between
+"export" and "train" by handing over a **runnable config** instead of numbers on a screen.
+
+```
+argus-quarry  ->  argus-curator  ->  argus-lens  ->  argus-forge  ->  your trainer
+  acquire          curate/export      caption          configs          LoRA
+```
+
+## What it does
+
+Point it at a curator export directory (images + `manifest.jsonl` + `.txt` caption sidecars) and it emits
+trainer-native config files, with hyperparameters seeded from the same selection-insight heuristics the
+/curate UI shows (dataset size x target category -> repeats/epochs/LR/dim/alpha):
+
+| Trainer | Emits |
+| ------- | ----- |
+| `kohya` | `dataset.toml` + `config.toml` (+ `train.sh` for `sdxl_train_network.py`) |
+| `onetrainer` | `concepts.json` + partial `config.json` to load in the UI |
+| `diffusers` | `metadata.jsonl` (HF imagefolder) + `train.sh` for `train_text_to_image_lora_sdxl.py` |
+
+Along the way it:
+
+- validates the manifest (`manifest_version`-aware — refuses an incompatible major),
+- **collects captions**: argus-lens writes `.txt` sidecars next to the *source* images, so forge copies them
+  next to the exported copies trainers actually read,
+- warns when a flattened export collided on basenames (several manifest rows -> one file on disk) and leaves
+  the ambiguous file uncaptioned instead of pairing it with the wrong caption,
+- emits one kohya subset per image directory (kohya's glob doesn't recurse — a structure-preserving export
+  would otherwise train zero images),
+- falls back gracefully to a bare folder of images with no manifest,
+- resolves the base checkpoint from the manifest's `target_profile.checkpoint` (or the SDXL base).
+
+Everything lands in `<export>/forge/<trainer>/` (plus `metadata.jsonl` at the dataset root for diffusers).
+
+## Install
+
+```bash
+uv pip install "argus-forge[cli]"          # CLI
+uv pip install "argus-forge[cli,server]"   # + HTTP server for argus-studio
+```
+
+Or run the published image (serves `:8103` with `--cors`, and defaults its export root to `/data/out`):
+
+```bash
+docker run --rm -p 8103:8103 -v /path/to/out:/data/out ghcr.io/smk762/argus-forge:latest
+docker compose up          # local build; see docker-compose.yaml (and .env.example) for the knobs
+```
+
+The image contains no trainer, so it defaults to [demo-safe mode](#demo-safe-mode-no-training) — configs
+render, training is refused and nothing is written. That default lives in the image itself
+(`ARGUS_FORGE_READONLY=1`), so a bare `docker run` is as locked down as `docker compose up`; the port is
+published on 0.0.0.0 and a run is real code execution on the host, so the safe direction is the default one.
+Set `ARGUS_FORGE_READONLY=0` on a trusted host once you have a trainer — either mounted, or baked in via
+the [train image](#training-image--train).
+
+### Training image (`-train`)
+
+A second image variant carries the training runtime, so `POST /run` can go live on a GPU host instead of
+crashing for want of a trainer: torch 2.6 (CUDA 12.4 wheels), accelerate, and a pinned
+[kohya-ss/sd-scripts](https://github.com/kohya-ss/sd-scripts) checkout at `/opt/sd-scripts`
+(`SD_SCRIPTS_DIR` is preset, so a forged kohya `train.sh` runs as-is). It is opt-in everywhere: published
+only under the `-train` suffix (`ghcr.io/smk762/argus-forge:<version>-train`, `:latest-train`) so
+`latest`/`<version>` stay the ~200 MB config-renderer and nobody pulls a multi-GB image by accident.
+
+```bash
+docker run --rm --init --gpus all --shm-size=8g \
+  -e ARGUS_FORGE_READONLY=0 \
+  -p 127.0.0.1:8103:8103 -v /path/to/out:/data/out \
+  ghcr.io/smk762/argus-forge:latest-train
+# or locally (uncomment `gpus: all` in docker-compose.yaml first):
+# FORGE_BUILD_TARGET=train ARGUS_FORGE_READONLY=0 docker compose up --build
+```
+
+- **The posture flip stays deliberate.** The train image *also* defaults to `ARGUS_FORGE_READONLY=1`;
+  carrying a trainer is what makes flipping it meaningful, not automatic. An armed `/run` executes a forged
+  script with no auth — treat reaching the port as shell access on the host (see
+  [demo-safe mode](#demo-safe-mode-no-training)). The command above binds loopback for exactly that
+  reason; publish wider (`-p 8103:8103`) only on a trusted network — docker's port publishing bypasses
+  ufw-style host firewalls, so "the firewall will catch it" is not a safety net.
+- **kohya only.** OneTrainer is driven from its own UI, and the diffusers `train.sh` expects a diffusers
+  examples checkout (`DIFFUSERS_SCRIPT`) this image doesn't carry.
+- The base checkpoint downloads from Hugging Face on first run; mount a cache
+  (`-v hf-cache:/root/.cache/huggingface`, or uncomment the `hf-cache` volume in docker-compose.yaml)
+  to keep it across containers, and `--shm-size` spares the dataloader docker's 64 MB `/dev/shm`
+  default (the compose file sets `shm_size` already).
+- The LoRA lands under the export dir (`<export>/forge/kohya/output/`) on the shared volume — point that
+  volume (or a `path_map`) at your ComfyUI-layout models tree (`.../loras/`) and the result is immediately
+  visible to argus-proof's `GET /models`, no file shuffling.
+- The `-train` tag is smoke-tested in CI, **not** e2e-trained — see [CI / Release](#ci--release).
+
+## CLI
+
+```bash
+argus-forge inspect /data/out                          # what's in this export?
+argus-forge inspect /data/out --category concept       # ...judged as a style / concept LoRA
+argus-forge config /data/out --trainer kohya           # emit configs
+argus-forge config /data/out -t diffusers --dry-run    # preview without writing
+argus-forge config /data/out --trigger "zxq person" --network-dim 32 --epochs 8
+argus-forge trainers                                   # list emitters
+argus-forge schema                                     # write the wire-contract JSON Schema
+argus-forge run /data/out --trainer kohya \
+  --env SD_SCRIPTS_DIR=~/kohya-ss/sd-scripts             # run the forged train.sh, streaming progress
+```
+
+`run` shells out to the forged `train.sh` (kohya / diffusers; OneTrainer is
+driven from its own UI) and streams the trainer's output. It exits with the
+trainer's own exit code, so it slots into scripts and CI; `--dry-run` prints the
+command without executing, and `--json` streams raw NDJSON `RunEvent`s.
+
+`--category` overrides the manifest's target category. The values are argus-cortex's shared taxonomy
+(`identity`, `wardrobe`, `pose_composition`, `setting`, `concept`), and each one sets its own step budget,
+network size and dataset-size guidance.
+
+`schema` writes the JSON Schema for forge's wire contract (the `/inspect`, `/config` and `/run` request and
+response types, plus the manifest row), so a client can generate types from it rather than copying them by
+hand. It writes to [`schema/forge-wire.schema.json`](schema/forge-wire.schema.json) by default (`-o` to
+choose another path); `--check` exits non-zero if that file no longer matches the code, which is what CI runs.
+
+## Server (argus-studio integration)
+
+Start the FastAPI micro-server on **:8103** (peer to lens :8100, curator :8101, quarry :8102):
+
+```bash
+argus-forge serve --cors --export-root /data/out
+```
+
+`serve` listens on `--host 0.0.0.0 --port 8103` by default, which is **every interface**, with `POST /run`
+enabled. Forge has no authentication, and [reaching an enabled `/run` is equivalent to shell
+access](#demo-safe-mode-no-training), so unless the network is trusted, pass `--host 127.0.0.1` (studio on
+the same machine), `--no-run` (configs only), or both:
+
+```bash
+argus-forge serve --host 127.0.0.1 --cors --export-root /data/out
+```
+
+`--export-root` is **required** by the API: a request's `export_dir` is untrusted, so it must name a
+directory *under* this one, and every `/inspect`, `/config` and `/run` refuses with 400 until it is set.
+Without the fence, `POST /config` would forge a tree into any directory the caller names. Also settable as
+`ARGUS_FORGE_EXPORT_ROOT` (`FORGE_EXPORT_PATH` is a legacy alias); the published image defaults it to
+`/data/out`. The **CLI is unconstrained** by design — it is your own shell, not a request.
+
+Containment is decided on the fully resolved path, so a symlink pointing out of the root is refused rather
+than followed, and the root itself is not a valid `export_dir` (a blank field would otherwise mean "treat
+the whole shared volume as one dataset"). The path handed to the emitters keeps *your* spelling, though —
+`path_map` prefixes are matched against it, so a symlinked root like `/data/out -> /mnt/<NAS>/out` still
+rewrites correctly. The manifest's `abs_path` caption sources are fenced to the same root: forge will not
+copy a sidecar from outside it into your dataset.
+
+`--cors` matters: the studio frontend calls forge **cross-origin** (browser on :3000 → forge on :8103), and
+CORS is opt-in — without it the ExportPanel fails with "Failed to fetch" even though `curl` works fine.
+(The Docker image passes `--cors` already; this applies to the pip-installed path.)
+
+A bare `--cors` allows the localhost:3000 dev frontend. Name other origins with `--cors-origin`
+(repeatable, or `FORGE_CORS_ORIGINS=a,b`); they are **added to** the localhost defaults, not swapped for
+them. Entries are compared to the `Origin` header a browser actually sends, so a trailing slash or stray
+whitespace is normalised away rather than silently never matching.
+
+`--cors-any` allows *any* origin **credential-less** — anonymous reads from anywhere, for a public demo. A
+literal `*` in the allow-list takes that same path rather than becoming credentialed origin reflection.
+It never grants a cross-site *write* to an origin you did not name — but origins you **did** name keep
+theirs. That pairing is what a public demo needs, because every endpoint that does anything in forge
+(`/inspect`, `/config`) is a POST:
+
+```bash
+argus-forge serve --cors-any --cors-origin https://demo.example --no-run --export-root /data/out
+```
+
+> CORS is not a write boundary. A cross-origin POST with a CORS-safelisted content type is sent with **no
+> preflight**, so any page your browser visits can drive an unauthenticated LAN server; the same-origin
+> policy only stops it from *reading* the reply. So unsafe methods are additionally gated on `Origin`:
+> absent (curl, the CLI, server-to-server) or same host:port or allow-listed → through; anything else → 403.
+
+| Route | Purpose |
+| ----- | ------- |
+| `GET /health` | liveness + version + export root + whether training is enabled |
+| `GET /trainers` | supported trainers + emitted files |
+| `POST /inspect` | look at an export dir (counts, manifest, suggested params) |
+| `POST /config` | render configs; `dry_run: true` returns contents without writing |
+| `POST /run` | start the forged `train.sh` on a background job; returns the run's `RunState` (with `run_id`) — the run outlives the request |
+| `GET /runs` | list tracked runs |
+| `GET /run/{id}` | a run's status (poll for the terminal `status` + `returncode` — the argus-proof join) |
+| `GET /run/{id}/stream` | attach to a run: NDJSON `RunEvent`s, the retained tail then live; reconnect anytime |
+| `POST /run/{id}/cancel` | stop a run (SIGTERM→SIGKILL its process group) |
+
+A run is started once (`POST /run`) and watched — or re-watched after a dropped connection — via
+`GET /run/{id}/stream`; a client going away never stops the run. `run_id` (also on the stream's
+`X-Training-Run-Id` header) is the join key for the argus-proof handoff. The `/curate` page's ExportPanel in
+[argus-studio](https://github.com/smk762/argus-studio) uses `/config` to forge a config right after an export
+(`docker compose --profile forge up`).
+
+> The local CLI `argus-forge run` streams live in your terminal and is independent of the server registry.
+
+### Demo-safe mode (no training)
+
+`POST /run` executes a script on the host. It runs a forged `train.sh` on the shared dataset volume — the
+same single-user LAN assumption as `/config` — but it is **not sandboxed**: treat reaching the port as
+equivalent to shell access on the host.
+
+So a host that should render configs but never train — a public demo, a box with no GPU or no `sd-scripts`
+— starts forge in demo-safe mode:
+
+```bash
+argus-forge serve --cors --no-run       # or: ARGUS_FORGE_READONLY=1 argus-forge serve --cors
+```
+
+`/inspect` and `/config` keep working. Every state-changing request (POST, PUT, PATCH, DELETE) to `/run` or a
+path under `/run/` is refused with **403** and a message saying training is disabled on this host. Today
+that is `POST /run` and `POST /run/{id}/cancel`. Reads are not refused: `GET /runs` returns an empty list
+and `GET /run/{id}` and `GET /run/{id}/stream` return 404, since no run can ever start. The refusal is
+middleware, so it lands *before* the request body is validated (on such a host a malformed request deserves
+the same answer as a well-formed one), and it covers `/run` routes added later without a per-route guard to
+forget.
+
+Demo-safe also means **write**-safe: `POST /config` is forced to `dry_run`, so it renders and returns the
+files but never touches the volume, and says so in `warnings` — a caller that asked for a real write learns
+it did not happen from the body, not by noticing every file's `path` is null. Forge has no authentication,
+so on a publicly reachable host an ordinary `curl` would otherwise overwrite the curator's
+`metadata.jsonl` and leave an executable `train.sh` behind on shared storage.
+
+`GET /health` reports `"training": "enabled" | "disabled"`, so a frontend can disable its train button up
+front rather than discovering the refusal by clicking it. **Both published images turn this mode on by
+default** (and the compose file with it): the thin image ships no trainer, so a run there could only ever
+fail, and the [train image](#training-image--train) keeps the same default so that arming `/run` is always
+an explicit choice rather than a side effect of pulling a bigger tag.
+`ARGUS_FORGE_READONLY` is a protection flag, so it fails *safe*: a value it cannot parse (`=y`, `=enabled`)
+warns and keeps the guard on rather than quietly enabling writes. Only an explicit `0`/`false`/`no`/`off`
+turns it off.
+
+### Container ↔ host paths (`path_map`)
+
+When forge runs in the compose stack it sees container paths (`/data/out/...`), but the emitted `train.sh` /
+configs are meant to run **on the host**, where those paths don't exist. Tell forge how to translate:
+
+```bash
+# per request (CLI: repeatable --path-map; API: "path_map" on POST /config)
+argus-forge config /data/out --path-map /data/out=$HOME/argus/out
+
+# or once, via the environment (the compose file can set this from OUTPUT_DIR)
+FORGE_PATH_MAP=/data/out=$HOME/argus/out argus-forge serve --cors
+```
+
+Every absolute path rendered into configs (`image_dir`, `output_dir`, `--train_data_dir`, OneTrainer concept
+paths, ...) gets the longest matching prefix rewritten; the request-level map wins over the env var. The
+emitted README notes whether a remap was applied.
+
+## Develop
+
+```bash
+make install   # venv + editable install with the "dev,server,cli" extras
+make test
+make lint
+```
+
+## CI / Release
+
+- **CI** runs via the shared [`argus-ci`](https://github.com/smk762/argus-ci) reusable workflow
+  (plus `argus-forge schema --check` to keep the committed wire schema honest).
+- **Release** publishes to PyPI (OIDC trusted publishing) and GHCR on `v*` tags — the thin image and the
+  [`-train` variant](#training-image--train) as independent jobs, so a fault in one never withholds the other.
+- The `-train` image is gated by a CPU-only smoke test before it is pushed
+  ([`scripts/smoke-train-image.sh`](scripts/smoke-train-image.sh)): the image builds, `serve` answers
+  `/health` (still demo-safe), torch/accelerate/sd-scripts import, and a forged kohya config passes the
+  `/run` validation path (`run --dry-run`). CI has no GPU, so **no actual training step runs** — a `-train`
+  tag is honest about building and validating, not e2e-verified; the first real `accelerate launch` happens
+  on your GPU host.
+- Once the wheel is on PyPI, the same run creates the **GitHub Release** for the tag. Its notes are that
+  version's `CHANGELOG.md` section, and the run fails if the section is missing. The built wheel and sdist
+  are attached, and tags like `-rc1`, `a1` or `b1` are marked as pre-releases.
+- Versioning is derived from git tags via `hatch-vcs` — tag `vX.Y.Z` to cut a release.
+
+This repo was scaffolded from [`argus-pkg-template`](https://github.com/smk762/argus-pkg-template).
+Run `copier update` to pull template changes (CI, release, tooling).
+
+## Roadmap
+
+- argus-proof handoff: post-training validation ([argus-studio#4](https://github.com/smk762/argus-studio/issues/4)).
+  `GET /run/{id}` now exposes a run's terminal `status` + `returncode` by `run_id` for the join.
+- run registry follow-ups ([#13](https://github.com/smk762/argus-forge/issues/13)): CLI management commands
+  (`runs` / `--attach` / `--cancel`), an optional single-flight guard, and durable run metadata across restarts.
