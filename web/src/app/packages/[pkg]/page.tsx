@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { PackageReadme } from "@/components/docs/PackageDoc";
-import { PACKAGE_DOCS, packageDocs } from "@/lib/packageDocs";
+import { PACKAGE_DOCS, packageDocs, packageHref } from "@/lib/packageDocs";
 import { pageMetadata } from "@/lib/pageMeta";
 
 // Only the imported packages exist; the static export prerenders each one.
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ pkg: stri
   const pkg = packageDocs(short);
   return pageMetadata({
     title: pkg ? pkg.package : "Packages",
-    path: `/docs/packages/${short}/`,
+    path: `${packageHref(short)}/`,
     description: pkg ? `${pkg.package} ${pkg.version}: its README, imported from the dev branch.` : undefined,
   });
 }

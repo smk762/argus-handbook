@@ -36,9 +36,11 @@ const H2 = "text-xl font-semibold text-foreground mt-10 mb-3";
  * The markdown's elements in the site's tokens (as mdx-components.tsx
  * styles the hand-written pages). Only children and the props each element
  * needs are passed on: react-markdown hands every override a hast `node`, and
- * GFM's table alignment arrives as a `style`, which the CSP would refuse.
+ * GFM's table alignment arrives as a `style`, which the CSP would refuse. GFM
+ * footnotes need the `id`s on their `a` and `li` (each links to the other), and
+ * an `ol` its `start` (a list split by a code block carries on counting).
  */
-const COMPONENTS = {
+export const COMPONENTS = {
   h1: heading("h2", H2),
   h2: heading("h2", H2),
   h3: heading("h3", "text-base font-semibold text-foreground mt-6 mb-2"),
@@ -46,13 +48,13 @@ const COMPONENTS = {
   h5: heading("h5", "text-sm font-medium text-foreground mt-4 mb-1"),
   h6: heading("h6", "text-sm font-medium text-muted mt-4 mb-1"),
   p: ({ children }: Props<"p">) => <p className="my-3 text-sm leading-relaxed text-foreground/80">{children}</p>,
-  a: ({ href = "", children }: Props<"a">) =>
+  a: ({ href = "", id, children, "aria-describedby": describedBy, "aria-label": label }: Props<"a">) =>
     href.startsWith("/") && !href.startsWith("//") ? (
-      <Link href={href} className={LINK}>
+      <Link href={href} id={id} className={LINK}>
         {children}
       </Link>
     ) : href.startsWith("#") ? (
-      <a href={href} className={LINK}>
+      <a href={href} id={id} aria-describedby={describedBy} aria-label={label} className={LINK}>
         {children}
       </a>
     ) : (
@@ -63,10 +65,14 @@ const COMPONENTS = {
   ul: ({ children }: Props<"ul">) => (
     <ul className="my-3 ml-5 list-disc space-y-1.5 text-sm text-foreground/80 marker:text-muted">{children}</ul>
   ),
-  ol: ({ children }: Props<"ol">) => (
-    <ol className="my-3 ml-5 list-decimal space-y-1.5 text-sm text-foreground/80 marker:text-muted">{children}</ol>
+  ol: ({ start, children }: Props<"ol">) => (
+    <ol start={start} className="my-3 ml-5 list-decimal space-y-1.5 text-sm text-foreground/80 marker:text-muted">{children}</ol>
   ),
-  li: ({ children }: Props<"li">) => <li className="pl-1">{children}</li>,
+  li: ({ id, children }: Props<"li">) => (
+    <li id={id} className="pl-1">
+      {children}
+    </li>
+  ),
   strong: ({ children }: Props<"strong">) => <strong className="font-semibold text-foreground">{children}</strong>,
   em: ({ children }: Props<"em">) => <em>{children}</em>,
   del: ({ children }: Props<"del">) => <del>{children}</del>,

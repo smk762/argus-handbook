@@ -11,8 +11,9 @@ import { ExternalLink } from "@/components/ExternalLink";
  * renders as-is; this only themes the plain prose.
  *
  * Internal links go through next/link so page-to-page navigation is client-side.
- * `h2`/`h3` get a slug `id` (from their text) so the on-page TOC and `#anchor`
- * links resolve; a caller-supplied `id` still wins.
+ * `h2`/`h3` get their `id` at compile time (scripts/remark-heading-ids.mjs,
+ * unique per page: a repeated heading is numbered), so the on-page TOC and
+ * `#anchor` links resolve. A JSX `<h2>` without one falls back to its slug.
  */
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {

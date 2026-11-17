@@ -196,14 +196,23 @@ const REMOTE = /^[a-z][a-z0-9+.-]*:|^\/\//i;
  * `img-src` should need no third-party origin. Other remote images (badges)
  * are null: the renderer drops them and nothing fetches them.
  */
+/** `decodeURI`, or the string as written when it holds a malformed escape (`100%-coverage.md`): a doc's link never fails the build. */
+export function safeDecodeURI(path) {
+  try {
+    return decodeURI(path);
+  } catch {
+    return path;
+  }
+}
+
 export function repoImagePath(pkg, file, src) {
   const raw = `https://raw.githubusercontent.com/${pkg.repo}/`;
   if (src.startsWith(raw)) {
     const path = src.slice(raw.length).split(/[?#]/)[0].split("/").slice(1).join("/");
-    return path ? posix.normalize(decodeURI(path)) : null;
+    return path ? posix.normalize(safeDecodeURI(path)) : null;
   }
   if (REMOTE.test(src) || src.startsWith("/") || src.startsWith("#")) return null;
-  const path = posix.normalize(posix.join(posix.dirname(file), decodeURI(src.split(/[?#]/)[0])));
+  const path = posix.normalize(posix.join(posix.dirname(file), safeDecodeURI(src.split(/[?#]/)[0])));
   return path.startsWith("../") ? null : path;
 }
 

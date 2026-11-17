@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { PackageSubPage } from "@/components/docs/PackageDoc";
-import { PACKAGE_DOCS, packageDocs, subPages } from "@/lib/packageDocs";
+import { PACKAGE_DOCS, packageDocs, packageHref, subPages } from "@/lib/packageDocs";
 import { pageMetadata } from "@/lib/pageMeta";
 
 // Only the imported pages exist; the static export prerenders each one.
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ pkg: stri
   const found = find(short, slug);
   return pageMetadata({
     title: found ? `${found.page.title} · ${found.pkg.package}` : "Packages",
-    path: `/docs/packages/${short}/${slug}/`,
+    path: `${packageHref(short, slug)}/`,
     description: found ? `${found.page.file} from ${found.pkg.package} ${found.pkg.version}, imported from the dev branch.` : undefined,
   });
 }

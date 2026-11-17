@@ -1,3 +1,5 @@
+import { join } from "node:path";
+
 import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
@@ -19,7 +21,9 @@ const withMDX = createMDX({
   // Turbopack serializes this config, so remark/rehype plugins must be given
   // as string module names (with optional options), not imported functions.
   options: {
-    remarkPlugins: [["remark-gfm", {}]],
+    // remark-heading-ids gives each `##`/`###` a unique id (repeats numbered).
+    // An absolute path: the loader's project root is not web/ under Turbopack.
+    remarkPlugins: [["remark-gfm", {}], [join(process.cwd(), "scripts", "remark-heading-ids.mjs"), {}]],
   },
 });
 

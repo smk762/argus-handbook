@@ -1,21 +1,14 @@
 import { Children, isValidElement, type ReactNode } from "react";
 
+import { slugify as slugifyText } from "../../scripts/remark-heading-ids.mjs";
+
 /**
- * GitHub-style slug: lower-case, spaces to hyphens, punctuation stripped.
- * Keeps Unicode letters/digits (via `\p{L}`/`\p{N}` + the `u` flag) so a
- * non-ASCII heading like `## 概要` yields a real anchor instead of collapsing
- * to an empty id. Note: this does NOT de-duplicate repeated headings — two
- * headings that slug alike on one page still collide (see rehype-slug for a
- * build-time counter).
+ * GitHub-style slug: lower-case, spaces to hyphens, punctuation stripped. The
+ * one implementation lives in scripts/remark-heading-ids.mjs, which also gives
+ * the MDX pages' `##`/`###` de-duplicated ids at compile time (`usage`, `usage-1`).
  */
 export function slugify(text: string): string {
-  return text
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+  return slugifyText(text);
 }
 
 /**
