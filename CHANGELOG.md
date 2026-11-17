@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- argus-mint, argus-survey and argus-mask under `/packages/` (#5): each README, `docs/*.md` and design doc (survey's `SPEC.md`, mask's `spec.md`), with home-page entries linking their demos (Assay, Sightline, Mask).
 - An inbound-link check (`npm run check:inbound`, in CI after the build). `web/schema/inbound.json` lists the handbook pages and `#anchors` that other repos link to: Studio's concept pages and redirects, and the UI READMEs' `which-services` anchors. CI fails if the static export no longer has one, so a synced doc that renames a heading can't silently break them.
 - argus-quarry's and argus-forge's READMEs, no longer held: their host mount paths were replaced upstream (smk762/argus-quarry#36, smk762/argus-forge#39).
 - The site: a Next.js static export in `web/`, served at https://docs.dragonhound.dev. Moved from argus-studio's `/docs` (smk762/argus-studio#170, #172), with the `/docs` prefix dropped:
@@ -18,3 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The docs shell: header (Argus mark, links to the demo UIs, theme toggle), sidebar, breadcrumb, prev/next, "On this page", footer, light and dark themes from the vendored Dragonhound shared layer (`web/vendor/dh`, dh-shared 1.2.1).
 - A hash-based CSP on every page and an `_headers` file for Cloudflare Pages (`web/scripts/csp.mjs`), and `_redirects` from Studio's old `/docs/setup/*` and `/docs/packages/*` paths.
 - CI (`ci.yml`): docs check, lint, typecheck, tests with the opsec denylist, the static build, a 390 px phone check over every route in both themes, and the dh-shared drift check. `deploy.yml` (Cloudflare Pages, creates the project when missing), `docs-drift.yml` (daily package docs sync PR), `docs-links.yml` (weekly external link check) and `suite.yml` (argus-ci suite check).
+
+### Fixed
+
+- Package docs synced to every `dev` HEAD again (#6): the LAN host name the opsec gate refused was replaced upstream (smk762/argus-lens#127, smk762/argus-curator#178, smk762/argus-proof#95, smk762/argus-cortex#119, smk762/argus-mask#140).
+- A link in a package doc's table no longer widens the page on a phone: the table's scroll wrapper is now positioned, so the link's visually hidden "(opens in new tab)" text stays inside it.

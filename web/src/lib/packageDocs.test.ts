@@ -54,7 +54,7 @@ describe("the package docs registry", () => {
   it("never imports agent, planning or notebook files", () => {
     for (const pkg of PACKAGES) {
       for (const file of pkg.docs) {
-        expect(file).toMatch(/^(README\.md|DESIGN\.md|spec\.md|docs\/[a-z0-9-]+\.md)$/);
+        expect(file).toMatch(/^(README\.md|DESIGN\.md|spec\.md|SPEC\.md|docs\/[a-z0-9-]+\.md)$/);
         expect(file).not.toMatch(/CLAUDE|AGENTS|TODO|\.claude|(^|\/)first-bake\.md$|notebook/i);
       }
     }

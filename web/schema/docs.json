@@ -5,8 +5,8 @@
       "package": "argus-lens",
       "repo": "smk762/argus-lens",
       "branch": "dev",
-      "commit": "ba707b8df92610a1e85d3fe5346d4785b860939f",
-      "version": "0.12.0",
+      "commit": "31fe8b84f8e2fce4e4b23d92e6db05573d0f23eb",
+      "version": "0.13.1.dev4+g31fe8b8",
       "pages": [
         {
           "file": "README.md",
@@ -28,15 +28,15 @@
       "files": {
         "src/content/packages/lens/docs/caption-result.md": "5a413cd0dcf7c7d712b7fb37db0be2a0b9203458110d670374c6fc57907f95f0",
         "src/content/packages/lens/docs/cli.md": "c8fde67f3202268c62ea02561476e826d282ab055fe2eac59a86355b7506cf09",
-        "src/content/packages/lens/README.md": "4d55c39350ffc9028ff45b25b3ca02b78a436412cee4c85b57be8b20d50cc836"
+        "src/content/packages/lens/README.md": "c1a5326c855d90238f5e0df717ea714de34b11e2383f8e1576a9659b9e0107df"
       }
     },
     "curator": {
       "package": "argus-curator",
       "repo": "smk762/argus-curator",
       "branch": "dev",
-      "commit": "099bb8d66a29c50438b32004a6aca23aa258745c",
-      "version": "0.15.2.dev4+g099bb8d",
+      "commit": "e125355a9d7001a70112dd232b169fc4e8a9c5e0",
+      "version": "0.17.1.dev10+ge125355",
       "pages": [
         {
           "file": "README.md",
@@ -131,32 +131,32 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/curator/docs/cli.md": "06bcb49b384fe0b496ab38c476e580268ff7a7aee9fb2ab6e15dd19978e6e6c4",
+        "src/content/packages/curator/docs/cli.md": "d022627606b84c385a69e7c311a8eb6ff9e66ca906fd40d37e8ce71fdabfe288",
         "src/content/packages/curator/docs/crops.md": "b836606ee147f8595946d7c8d069ae2abce2d3321870634016167f2930196003",
         "src/content/packages/curator/docs/face-attributes.md": "ea77a57dd3c166862273fc729284215edac0aa355cda2fd384be26e2e7f2f3bc",
         "src/content/packages/curator/docs/face-sources.md": "55a97881a93f9613a7694621eba705a9d1df3cfe09fdb6fc2d70043880b3ce79",
         "src/content/packages/curator/docs/garments.md": "28329b9da6ebe1815ee87b14b1d7dfd984a480298dcfe02c7969f19be9763aa0",
-        "src/content/packages/curator/docs/gpu.md": "3308207ec0a1b733705ff64da236f0302cc7a374fd1bfe7a30a8c3e31a1cb98e",
-        "src/content/packages/curator/docs/http-api.md": "87ff36ddb404347b07f404c444625390551ae9a5d5fd69464fbd34137ebb6757",
-        "src/content/packages/curator/docs/manifest.md": "b30406daef784ae5d3d1ed7c234e2e4612038d40895a53caa04f447233b018ab",
+        "src/content/packages/curator/docs/gpu.md": "3d085080b76ead65a26786e45f0e7faa1e718de60bb82f0a01b6f45a98c9f5d9",
+        "src/content/packages/curator/docs/http-api.md": "e3c60ed2029cc5fba54c791b894ff7bf664b8e755577fbd664de055f1bfe225c",
+        "src/content/packages/curator/docs/manifest.md": "3aca9ed3b091f16385621dc1ec695b89a10711b1558ddc8f0f9558dfbcf941d4",
         "src/content/packages/curator/docs/moderation.md": "91ff5feef378bceaf8dd979c176fca46452327aacd39e2795e422076aadf24eb",
-        "src/content/packages/curator/docs/nudity.md": "05ecb61e9d990300f71fca95e0ad4f7507b32729b0dde67c8d60c1bb64e13486",
-        "src/content/packages/curator/docs/policy-check.md": "0e050cce3625a38c76f400ebe0588f42eed0e881a16f6ec213b0cafb23bc6267",
+        "src/content/packages/curator/docs/nudity.md": "c50618ebecf658323e479bd05e24d679d48788bdf8764e1c2ba5c8ee2d88ace4",
+        "src/content/packages/curator/docs/policy-check.md": "d90cb5d57b00ef4ab5fe673bafb019fcd95a7d1254e72a2fa2f57d22b7a304a6",
         "src/content/packages/curator/docs/prefilter.md": "363fd7c0173b26a88f3f33724380aa280e53f310a89e7698f2fe17aa627c427c",
         "src/content/packages/curator/docs/scene-tags.md": "8fb733d4c428762f3fa0711361cbad011a1171507faf7632f1cc2b674eb384fe",
         "src/content/packages/curator/docs/scoring.md": "91b52750b1deaa28278ec2e5d4d6e7381bd8c26c30ec53c0d945486c148cdac7",
         "src/content/packages/curator/docs/sidecars.md": "724b0b530604694f76991e740b591c9a304580df3c660362af9f19c0cce7b0ac",
         "src/content/packages/curator/docs/synthetic-face-sets.md": "2ffa3df5240c6ec35068e65a21ca6c9dd60b01ada362de4280e86432f8a05d6a",
         "src/content/packages/curator/docs/xmp.md": "943cb59854be467a3497644933ae43a3a68c50b432f226b9439d676725a8330d",
-        "src/content/packages/curator/README.md": "b4058ee1fa605a73d9048806e464527a225d55379bb3c7f75cd87085390cb822"
+        "src/content/packages/curator/README.md": "cb9cd6a6ae8fb09016be6a32460a275e5ecbd39f909d4f59a435baf3d69e4800"
       }
     },
     "quarry": {
       "package": "argus-quarry",
       "repo": "smk762/argus-quarry",
       "branch": "dev",
-      "commit": "0d40962cea69ca35d2d259b57c467543c1535cf9",
-      "version": "0.4.1.dev9+g0d40962",
+      "commit": "2172a67a798fa0a93056a77ed4d6d56442c991b9",
+      "version": "0.4.1.dev18+g2172a67",
       "pages": [
         {
           "file": "README.md",
@@ -171,16 +171,16 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/quarry/DESIGN.md": "63061567a3b57d0c05b305c30f149b3b1521bdba4597ca90d0d55321d8c2f2f4",
-        "src/content/packages/quarry/README.md": "f4911f8e1289adec17669e24affb4fa837bd98c065580e4f9ee6db43117586a8"
+        "src/content/packages/quarry/DESIGN.md": "f952605941f280912c8e51caa86188fbb32f5373a2b487252dbacffb99d0f0ae",
+        "src/content/packages/quarry/README.md": "51ec7a14968e3590f13c085f676b1cb0d84f780ddd70341b40f633ec79132256"
       }
     },
     "forge": {
       "package": "argus-forge",
       "repo": "smk762/argus-forge",
       "branch": "dev",
-      "commit": "093ab0df69a6839bd08f45c4745add41253b2201",
-      "version": "0.2.1.dev9+g093ab0d",
+      "commit": "74c645806d5e4437f5d0a831ece5c552228c1ef4",
+      "version": "0.2.1.dev11+g74c6458",
       "pages": [
         {
           "file": "README.md",
@@ -197,8 +197,8 @@
       "package": "argus-proof",
       "repo": "smk762/argus-proof",
       "branch": "dev",
-      "commit": "1c009405d1d5bee8a3ba4b3a52f3991c24f12a50",
-      "version": "0.3.0",
+      "commit": "c98b1dd332e9af6a5001bbdaac7c8c5857e36b3e",
+      "version": "0.4.1.dev6+gc98b1dd",
       "pages": [
         {
           "file": "README.md",
@@ -208,15 +208,15 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/proof/README.md": "24c74fb72ab0f8810f0eb71de9b29c526d40d4a94f4166454fdcfcbcfe1f7282"
+        "src/content/packages/proof/README.md": "b17b5ee59509dc5df43f5e50d929e351a04be7c7b63281ceba9fbc1cb174df86"
       }
     },
     "atlas": {
       "package": "argus-atlas",
       "repo": "smk762/argus-atlas",
       "branch": "dev",
-      "commit": "c69464fa31f3486d4dfcc21d337fecb2936c7af3",
-      "version": "0.3.2.dev13+gc69464f",
+      "commit": "4f20ab5b7239e64c1a4ffed54edc27a1f827c879",
+      "version": "0.3.2.dev19+g4f20ab5",
       "pages": [
         {
           "file": "README.md",
@@ -283,8 +283,8 @@
       "package": "argus-darkroom",
       "repo": "smk762/argus-darkroom",
       "branch": "dev",
-      "commit": "78014b991b1a601f78306f99bb99c5653b902bf3",
-      "version": "0.2.1.dev13+g78014b9",
+      "commit": "ace3f31690d17bc6814bb898be572f20657bcee8",
+      "version": "0.2.1.dev31+gace3f31",
       "pages": [
         {
           "file": "README.md",
@@ -299,16 +299,223 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/darkroom/README.md": "180134672fbd89c3c45107650bcb64a2a6f593c6b760ab8d629eb699c74b670d",
-        "src/content/packages/darkroom/spec.md": "692952fda20aabc2148d661a0bd17e6b0ad8d8ff8f38f3f707c51a964383b26a"
+        "src/content/packages/darkroom/README.md": "790a6088b4f16db1dfaceec1b9bddc63057ae92762f58456a34f6684905c3ea6",
+        "src/content/packages/darkroom/spec.md": "89986704a5552dad341f5e646d88c7fe4faa6f99d89d81a23b7f9d10d9d4783b"
+      }
+    },
+    "mint": {
+      "package": "argus-mint",
+      "repo": "smk762/argus-mint",
+      "branch": "dev",
+      "commit": "96b9fe6e6b22cf82d1fd9cba71aa6863a7790a41",
+      "version": "0.2.3.dev6+g96b9fe6",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-mint"
+        },
+        {
+          "file": "docs/catalogue.md",
+          "slug": "catalogue",
+          "title": "The catalogue: templates, frames and bio templates"
+        },
+        {
+          "file": "docs/drafts.md",
+          "slug": "drafts",
+          "title": "Drafts: from render to publish"
+        },
+        {
+          "file": "docs/review.md",
+          "slug": "review",
+          "title": "Review: who approves what"
+        },
+        {
+          "file": "docs/customise.md",
+          "slug": "customise",
+          "title": "Customise: the owner's styling, previewed and baked"
+        },
+        {
+          "file": "docs/deploy.md",
+          "slug": "deploy",
+          "title": "Deploying argus-mint to Base"
+        },
+        {
+          "file": "docs/api.md",
+          "slug": "api",
+          "title": "HTTP API"
+        },
+        {
+          "file": "docs/cli.md",
+          "slug": "cli",
+          "title": "CLI reference"
+        }
+      ],
+      "held": [],
+      "files": {
+        "src/content/packages/mint/docs/api.md": "1840de6430f2a5c08f83558b074a8ebe47c2443480edc707251a7f03a52947a2",
+        "src/content/packages/mint/docs/catalogue.md": "670ea99a8b83efaf5ffb1cc5d029a3549dceebb46a71c828c4137b74eda17b89",
+        "src/content/packages/mint/docs/cli.md": "29101a17732ff7042df7cb9facd1e1d529b169c6665eb97f714e3391f8f59ed0",
+        "src/content/packages/mint/docs/customise.md": "a44373fcfd785227207982b1e2610adc279a1b047f604f06dde5c4468e37bbc1",
+        "src/content/packages/mint/docs/deploy.md": "bd9c5bd23d9a3687c1c5fcfd08ea8ef6ec24d03a75f88e8419a697e81f63e122",
+        "src/content/packages/mint/docs/drafts.md": "de74d5ef1a9ccee6326c7ef10999f4bff536643f6e0373f46ca9b703f343f14f",
+        "src/content/packages/mint/docs/review.md": "8305f5d6bb481dde87f4a658ffec54cff1bde65340371ebb472a038b3d18b100",
+        "src/content/packages/mint/README.md": "49981ddcf39ac0238410a43244856839fdc6f07cff4c74ae61a21588a006d1ea"
+      }
+    },
+    "survey": {
+      "package": "argus-survey",
+      "repo": "smk762/argus-survey",
+      "branch": "dev",
+      "commit": "f4fbc55761c002709cc0489465e185b03bb2f74d",
+      "version": "0.1.3.dev6+gf4fbc55",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-survey"
+        },
+        {
+          "file": "SPEC.md",
+          "slug": "spec",
+          "title": "argus-survey — v0 spec and build brief"
+        },
+        {
+          "file": "docs/steps.md",
+          "slug": "steps",
+          "title": "Workflow steps"
+        },
+        {
+          "file": "docs/methods.md",
+          "slug": "methods",
+          "title": "Methods"
+        },
+        {
+          "file": "docs/datums.md",
+          "slug": "datums",
+          "title": "Datums"
+        },
+        {
+          "file": "docs/data-sources.md",
+          "slug": "data-sources",
+          "title": "Public point-cloud data"
+        },
+        {
+          "file": "docs/provenance.md",
+          "slug": "provenance",
+          "title": "Provenance"
+        },
+        {
+          "file": "docs/runbook.md",
+          "slug": "runbook",
+          "title": "Runbook"
+        },
+        {
+          "file": "docs/atlas-showcase.md",
+          "slug": "atlas-showcase",
+          "title": "Survey → fantasy map (argus-atlas showcase)"
+        },
+        {
+          "file": "docs/api.md",
+          "slug": "api",
+          "title": "HTTP API"
+        },
+        {
+          "file": "docs/cli.md",
+          "slug": "cli",
+          "title": "CLI reference"
+        }
+      ],
+      "held": [],
+      "files": {
+        "public/package-docs/survey/docs/img/viewer.png": "f370794536b37dcb6088d3aa81b22f2f7b1ba92a4bdd5219564e25b138d8bb45",
+        "src/content/packages/survey/docs/api.md": "22727ae74a6028b754069fb82cb2190d790ab500b15586eb5a4b6187d8b885a0",
+        "src/content/packages/survey/docs/atlas-showcase.md": "5db2fa11f86fc9cc205eabe3776d6ca390c4a284de932d4c044f4bff73689932",
+        "src/content/packages/survey/docs/cli.md": "84356e855cab7a1a8cbb7683664576737740b0f17f9c82f5dbf126044716456e",
+        "src/content/packages/survey/docs/data-sources.md": "86902eadf9bbb1b1cdb0c9ca0f5eccedbca5da097b4871d3ddf0abf34038dd09",
+        "src/content/packages/survey/docs/datums.md": "0825a842f6a52997a280198f92a63e198573fb8114fbdc46e23f116f8e0dbf6d",
+        "src/content/packages/survey/docs/methods.md": "6727b64665bc0ae2d46f7fd445111b255e408d718d5f5c74c0f30c10efa89f5f",
+        "src/content/packages/survey/docs/provenance.md": "7229dbcf734f651912d5994e03912e817adfc2c9e2482253335eb687020957cd",
+        "src/content/packages/survey/docs/runbook.md": "d386dc9f7ad0a14271c29a28b7a75dffe35624f54ff9a2d1ca5e5e5764887035",
+        "src/content/packages/survey/docs/steps.md": "92dbb51ffc2bfb567c6f7136e5bf132bb738f648f23670e2bfde6dc30aa66a4c",
+        "src/content/packages/survey/README.md": "ae523db5b033e0d08dfa9780472fbecb83aeba1640e57d3aaf798097942e1541",
+        "src/content/packages/survey/SPEC.md": "0fb6c4ae885d368f20e4e658218c1d9fb6bc497e0793ca69e6e0c016115887c3"
+      }
+    },
+    "mask": {
+      "package": "argus-mask",
+      "repo": "smk762/argus-mask",
+      "branch": "dev",
+      "commit": "60065a043198631b5b7f12fc622264e1bc24edcf",
+      "version": "0.2.1.dev106+g60065a0",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-mask"
+        },
+        {
+          "file": "spec.md",
+          "slug": "spec",
+          "title": "argus-mask — build doc"
+        },
+        {
+          "file": "docs/consent.md",
+          "slug": "consent",
+          "title": "Consent records"
+        },
+        {
+          "file": "docs/likeness-release.md",
+          "slug": "likeness-release",
+          "title": "Likeness release: a template"
+        },
+        {
+          "file": "docs/consented-faces.md",
+          "slug": "consented-faces",
+          "title": "Capturing a consenting person's face"
+        },
+        {
+          "file": "docs/synthetic-faces.md",
+          "slug": "synthetic-faces",
+          "title": "Making a synthetic face for input"
+        },
+        {
+          "file": "docs/splat-heads.md",
+          "slug": "splat-heads",
+          "title": "Splat heads in the viewer: the renderer's traps"
+        },
+        {
+          "file": "docs/voices.md",
+          "slug": "voices",
+          "title": "Making a voice"
+        },
+        {
+          "file": "docs/backgrounds.md",
+          "slug": "backgrounds",
+          "title": "Backgrounds"
+        }
+      ],
+      "held": [],
+      "files": {
+        "public/package-docs/mask/docs/media/mesh-stock-01-highland-forest.jpg": "2b521d23e596ab24a36ee0436fc77bcc365a0354e62c57d8dd9f977dfe807ff6",
+        "public/package-docs/mask/docs/media/mesh-stock-02-bunker.jpg": "e22a481e949ad5464b1398b62c500c225533a4769a0bf85e86c8a14f3cb4fb85",
+        "src/content/packages/mask/docs/backgrounds.md": "23c86a5441e20200967107bbb9348da263120162a9eeb4634667c6e11f7555f5",
+        "src/content/packages/mask/docs/consent.md": "04077b4a059e5dc7d6b226248f24bfad6fb21acd68eb28cc1d8a869adcec6af7",
+        "src/content/packages/mask/docs/consented-faces.md": "42662ee980ef151ae67e1e00daaa6eb3306930a682d655adbe1a589bd1529640",
+        "src/content/packages/mask/docs/likeness-release.md": "35ef9811cadf41135d92cca3142c70f752e59a1909d9d241aa1b8be2534ce682",
+        "src/content/packages/mask/docs/splat-heads.md": "c714d6aa403c835c575ea7235209acec39b68ccafcbbfa28c94d7f0bea467f43",
+        "src/content/packages/mask/docs/synthetic-faces.md": "3b8c9570dabbc1744372bb0c3a2ddf9b8d5b7815c30eda8044a2c27953c5193b",
+        "src/content/packages/mask/docs/voices.md": "89d3ffe9fde0d791c8f6d41ba9067b27aeb7347c68dc65fcead7a37e63f1d9b3",
+        "src/content/packages/mask/README.md": "36764a0d044a925f889c9e75e6c6a56665d7b4a9aa0383be7080bb4169b7e0e9",
+        "src/content/packages/mask/spec.md": "8bd08276bd452fb54685978b7662af3084167f90fea15e444e955db3e66d03bf"
       }
     },
     "cortex": {
       "package": "argus-cortex",
       "repo": "smk762/argus-cortex",
       "branch": "dev",
-      "commit": "e74048ba27ed770ffae0bbc24ec7796abf96d08e",
-      "version": "0.5.1.dev44+ge74048b",
+      "commit": "6bdc1082cf9dc2c8827deaa767a7ad0493e5a2f7",
+      "version": "0.9.1.dev2+g6bdc108",
       "pages": [
         {
           "file": "README.md",
@@ -318,7 +525,7 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/cortex/README.md": "0f1d2f02342d642dad9f630e0811e4023e23ee4a9f1fd78eaa0d826969415202"
+        "src/content/packages/cortex/README.md": "54275c01764743ee87e0895378387e4169c9ae4f3e7754c6e9634525afa45dbf"
       }
     }
   }
