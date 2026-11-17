@@ -11,15 +11,16 @@
  * - a link to an imported doc (this package's or a sibling's) stays on this site; any other file in the
  *   package's repo goes to GitHub at the recorded commit, and `../<sibling>/...` to that sibling's `dev`;
  * - an image from the package's own repo loads from the vendored copy under /package-docs/<short>/;
- *   any other remote image (badges) is dropped, so `img-src` needs nothing new.
+ *   any other remote image (badges) is dropped, so `img-src` needs nothing new. A reference-style
+ *   image (`![CI][badge]` with `[badge]: <url>`) goes the same way: its definition is resolved as an image.
  * Raw HTML is skipped by the renderer.
  */
 import { readFileSync } from "node:fs";
 import { join, posix } from "node:path";
 
-import type { Heading, Image, Link, Nodes, Root } from "mdast";
+import type { Definition, Heading, Image, Link, Nodes, Root } from "mdast";
 
-import { repoImagePath } from "../../scripts/package-docs-lib.mjs";
+import { repoImagePath, safeDecodeURI } from "../../scripts/package-docs-lib.mjs";
 import { importedPage, packageHref, packageLinks, type PackageDocPage, type PackageDocs } from "./packageDocs";
 
 /** Where the imported files sit, relative to web/ (the build's working directory). */
@@ -68,14 +69,15 @@ export function resolveLink(url: string, pkg: PackageDocs, page: PackageDocPage)
     // A GitHub link to an imported doc at main or dev reads the same page here.
     const found = GITHUB_FILE.exec(url);
     if (found && found[1] === owner) {
-      const hit = importedPage(found[2], posix.normalize(decodeURI(found[3])));
+      const hit = importedPage(found[2], posix.normalize(safeDecodeURI(found[3])));
       if (hit) return packageHref(hit.pkg.short, hit.page.slug, found[4]);
     }
     return url;
   }
-  const [path, anchor] = url.split("#", 2);
+  const [raw, anchor] = url.split("#", 2);
+  const path = safeDecodeURI(raw);
   // GitHub reads a leading `/` as the repo's root.
-  const target = posix.normalize(path.startsWith("/") ? path.slice(1) : posix.join(posix.dirname(page.file), decodeURI(path)));
+  const target = posix.normalize(path.startsWith("/") ? path.slice(1) : posix.join(posix.dirname(page.file), path));
   if (target.startsWith("../")) {
     // A sibling repo in the suite's checkout layout: `../argus-lens/README.md`.
     const [repo, ...rest] = target.slice(3).split("/");
@@ -126,18 +128,37 @@ export function packageDoc(pkg: PackageDocs, page: PackageDocPage) {
       headings.push({ depth: node.depth, text: textOf(node), id });
     });
 
+    // A definition only images use (`![CI][badge]`, `[badge]: <url>`) is an image source, not a link.
+    const imageOnly = new Map<string, Definition>();
+    const linked = new Set<string>();
+    walk(tree, (node) => {
+      if (node.type === "definition") imageOnly.set(node.identifier, node);
+      if (node.type === "linkReference") linked.add(node.identifier);
+    });
+    for (const id of linked) imageOnly.delete(id);
+    const imageSrc = new Map<string, string | null>();
+    for (const [id, definition] of imageOnly) {
+      const src = resolveImage(definition.url, pkg, page);
+      imageSrc.set(id, src);
+      if (src) definition.url = src;
+    }
+
     walk(tree, (node, parent) => {
-      if (node.type === "link" || node.type === "definition") (node as Link).url = resolveLink(node.url, pkg, page);
+      if (node.type === "link" || (node.type === "definition" && !imageOnly.has(node.identifier))) {
+        (node as Link).url = resolveLink(node.url, pkg, page);
+      }
       if (node.type === "image" && parent) {
         const image = node as Image;
         const src = resolveImage(image.url, pkg, page);
         if (src) image.url = src;
         else remove(node, parent);
       }
+      // Kept only when its definition is a vendored image; a link's definition never resolves to one.
+      if (node.type === "imageReference" && parent && !imageSrc.get(node.identifier)) remove(node, parent);
     });
     // A badge's link is empty once its image is gone.
     walk(tree, (node, parent) => {
-      if (node.type === "link" && node.children.length === 0 && parent) remove(node, parent);
+      if ((node.type === "link" || node.type === "linkReference") && node.children.length === 0 && parent) remove(node, parent);
     });
   };
   return { plugin, headings };

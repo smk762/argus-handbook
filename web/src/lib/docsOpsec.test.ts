@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { opsecFindings, parseDenylist } from "./docsOpsec";
+import { gateDenylist, opsecFindings, parseDenylist } from "./docsOpsec";
 
 describe("opsecFindings", () => {
   it("passes placeholders, loopback and container paths", () => {
@@ -43,9 +43,23 @@ describe("opsecFindings", () => {
   });
 });
 
+describe("gateDenylist", () => {
+  it("refuses to run without the denylist in GitHub Actions", () => {
+    expect(() => gateDenylist({ GITHUB_ACTIONS: "true", CI: "true" })).toThrow(/DOCS_OPSEC_DENYLIST/);
+    expect(() => gateDenylist({ GITHUB_ACTIONS: "true", DOCS_OPSEC_DENYLIST: " ,\n" })).toThrow(/DOCS_OPSEC_DENYLIST/);
+  });
+
+  it("returns the parsed list there, and allows an empty one elsewhere", () => {
+    expect(gateDenylist({ GITHUB_ACTIONS: "true", DOCS_OPSEC_DENYLIST: "a, b" })).toEqual(["a", "b"]);
+    expect(gateDenylist({})).toEqual([]);
+    expect(gateDenylist({ CI: "true" })).toEqual([]);
+  });
+});
+
 // The gate itself: every published docs source must pass, the package docs
 // imported under src/content/packages included. CI supplies the
-// private denylist as the DOCS_OPSEC_DENYLIST secret.
+// private denylist as the DOCS_OPSEC_DENYLIST secret, and the gate fails in
+// GitHub Actions without it (gateDenylist), rather than passing on an empty list.
 const ROOT = join(__dirname, "..");
 const PUBLISHED = [join(ROOT, "app"), join(ROOT, "content")];
 
@@ -58,10 +72,16 @@ function files(dir: string): string[] {
 }
 
 describe("published docs opsec gate", () => {
-  const denylist = parseDenylist(process.env.DOCS_OPSEC_DENYLIST);
+  // Read inside the tests, so a missing secret in GitHub Actions fails them rather than the file's collection.
+  let cached: string[] | undefined;
+  const denylist = () => (cached ??= gateDenylist());
+  it("has the private denylist when running in GitHub Actions", () => {
+    const list = denylist();
+    if (process.env.GITHUB_ACTIONS === "true") expect(list.length).toBeGreaterThan(0);
+  });
   for (const file of PUBLISHED.flatMap(files)) {
     it(relative(ROOT, file), () => {
-      expect(opsecFindings(readFileSync(file, "utf8"), denylist)).toEqual([]);
+      expect(opsecFindings(readFileSync(file, "utf8"), denylist())).toEqual([]);
     });
   }
 });

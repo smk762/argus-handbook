@@ -1,17 +1,21 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, posix } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { describe, expect, it } from "vitest";
 
 import { DOCS_PAGES, docsPager } from "@/components/docs/docsNav";
-import { PackageReadme, PackageSubPage } from "@/components/docs/PackageDoc";
+import { generateMetadata as packageMetadata } from "@/app/packages/[pkg]/page";
+import { generateMetadata as subPageMetadata } from "@/app/packages/[pkg]/[slug]/page";
+import { COMPONENTS, PackageReadme, PackageSubPage } from "@/components/docs/PackageDoc";
 
 import { PACKAGES, releaseOf, slugOf, titleOf, versionFrom, versionOf } from "../../scripts/package-docs-lib.mjs";
 import { check, RECORD_PATH } from "../../scripts/package-docs.mjs";
 import { opsecFindings } from "./docsOpsec";
 import { PACKAGE_DOCS, packageDocs, packageHref, subPages, type PackageDocPage, type PackageDocs } from "./packageDocs";
-import { packageDoc, packageDocHeadings, readPackageDoc, resolveLink, slugger } from "./packageDocsRender";
+import { packageDoc, packageDocHeadings, readPackageDoc, resolveImage, resolveLink, slugger } from "./packageDocsRender";
 
 const record = JSON.parse(readFileSync(RECORD_PATH, "utf8"));
 
@@ -212,6 +216,84 @@ describe("link resolution", () => {
     const processor = unified().use(remarkParse).use(doc.plugin);
     const tree = await processor.run(processor.parse("# T\n\n[![CI](https://img.shields.io/x.svg)](https://ci) text\n"));
     expect(JSON.stringify(tree)).not.toMatch(/shields|"type":"link"/);
+  });
+
+  it("does not throw on a malformed escape, and decodes a root-relative path like a relative one", () => {
+    expect(resolveLink("100%-coverage.md", curator, page)).toBe(
+      `https://github.com/${curator.repo}/blob/${curator.commit}/docs/100%-coverage.md`,
+    );
+    expect(resolveLink("https://github.com/smk762/argus-lens/blob/dev/docs/100%-x.md", curator, page)).toBe(
+      "https://github.com/smk762/argus-lens/blob/dev/docs/100%-x.md",
+    );
+    expect(resolveImage("img/100%-x.png", curator, page)).toBeNull();
+    expect(resolveLink("/docs/nudity%2Emd#x", curator, page)).toBe("/packages/curator/nudity#x");
+    expect(resolveLink("/docs/nudity.md#x", curator, page)).toBe("/packages/curator/nudity#x");
+  });
+
+  const transform = async (pkg: PackageDocs, docPage: PackageDocPage, markdown: string) => {
+    const [{ unified }, { default: remarkParse }] = await Promise.all([import("unified"), import("remark-parse")]);
+    const doc = packageDoc(pkg, docPage);
+    const processor = unified().use(remarkParse).use(doc.plugin);
+    return JSON.stringify(await processor.run(processor.parse(markdown)));
+  };
+
+  it("drops a reference-style badge and its now empty link reference", async () => {
+    const tree = await transform(
+      curator,
+      page,
+      "# T\n\n[![CI][ci-badge]][ci] text\n\n[ci-badge]: https://img.shields.io/x.svg\n[ci]: https://ci.example.org\n",
+    );
+    expect(tree).not.toMatch(/"type":"imageReference"|"type":"linkReference"/);
+    expect(tree).toContain("text");
+  });
+
+  it("loads a reference-style repo image from the vendored copy, not a GitHub blob page", async () => {
+    const atlas = packageDocs("atlas")!;
+    const readme = atlas.pages.find((candidate) => candidate.slug === "")!;
+    const vendored = Object.keys(atlas.files).find((path) => path.startsWith("public/package-docs/atlas/"))!;
+    const repoPath = vendored.slice("public/package-docs/atlas/".length);
+    const src = posix.relative(posix.dirname(readme.file), repoPath);
+    const tree = await transform(atlas, readme, `# T\n\n![shot][s]\n\n[s]: ${src}\n`);
+    expect(tree).toContain('"type":"imageReference"');
+    expect(tree).toContain(`"url":"/package-docs/atlas/${repoPath}"`);
+    expect(tree).not.toContain("github.com");
+  });
+
+  it("still resolves a definition shared by a link and an image as a link", async () => {
+    const tree = await transform(curator, page, "# T\n\n[go][d] ![x][d]\n\n[d]: policy-check.md\n");
+    expect(tree).toContain('"url":"/packages/curator/policy-check"');
+    expect(tree).not.toMatch(/"type":"imageReference"/);
+  });
+});
+
+describe("the imported pages' markdown elements", () => {
+  const render = (markdown: string) =>
+    renderToStaticMarkup(createElement(ReactMarkdown, { remarkPlugins: [remarkGfm], skipHtml: true, components: COMPONENTS }, markdown));
+
+  it("keep the footnote ids, so a reference and its back-link each land", () => {
+    const markup = render("A claim.[^1]\n\n[^1]: The source.\n");
+    const ids = new Set([...markup.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+    const hrefs = [...markup.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
+    expect(hrefs.length).toBeGreaterThanOrEqual(2);
+    for (const href of hrefs) expect(ids, `#${href}`).toContain(href);
+  });
+
+  it("keep an ordered list's start number", () => {
+    expect(render("1. one\n\n```\ncode\n```\n\n3. three\n")).toMatch(/<ol start="3"/);
+  });
+});
+
+describe("the package pages' metadata", () => {
+  it("names the route each page is served at", async () => {
+    for (const pkg of PACKAGE_DOCS) {
+      const meta = await packageMetadata({ params: Promise.resolve({ pkg: pkg.short }) });
+      expect(meta.alternates?.canonical).toBe(`${packageHref(pkg.short)}/`);
+      for (const page of subPages(pkg)) {
+        const sub = await subPageMetadata({ params: Promise.resolve({ pkg: pkg.short, slug: page.slug }) });
+        expect(sub.alternates?.canonical).toBe(`${packageHref(pkg.short, page.slug)}/`);
+        expect(rendered.has(packageHref(pkg.short, page.slug))).toBe(true);
+      }
+    }
   });
 });
 

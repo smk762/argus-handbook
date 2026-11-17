@@ -29,3 +29,18 @@ export function parseDenylist(raw: string | undefined): string[] {
 export function opsecFindings(text: string, denylist: string[] = []): OpsecFinding[] {
   return findings(text, denylist);
 }
+
+/**
+ * The denylist the gate runs with. In GitHub Actions (`GITHUB_ACTIONS=true`),
+ * where the secret lives, a missing or empty `DOCS_OPSEC_DENYLIST` is an error,
+ * not an empty list: a fork or Dependabot run gets no secrets, and a renamed
+ * secret reads as unset, and either would let the gate pass without the private
+ * terms. Elsewhere (a local run, another runner that never had the secret) it may be empty.
+ */
+export function gateDenylist(env: Record<string, string | undefined> = process.env): string[] {
+  const denylist = parseDenylist(env.DOCS_OPSEC_DENYLIST);
+  if (denylist.length === 0 && env.GITHUB_ACTIONS === "true") {
+    throw new Error("DOCS_OPSEC_DENYLIST is unset or empty in GitHub Actions: the opsec gate would skip the private denylist");
+  }
+  return denylist;
+}
