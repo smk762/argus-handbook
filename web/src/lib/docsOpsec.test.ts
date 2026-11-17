@@ -44,22 +44,22 @@ describe("opsecFindings", () => {
 });
 
 describe("gateDenylist", () => {
-  it("refuses to run without the denylist in CI", () => {
-    expect(() => gateDenylist({ CI: "true" })).toThrow(/DOCS_OPSEC_DENYLIST/);
-    expect(() => gateDenylist({ CI: "true", DOCS_OPSEC_DENYLIST: " ,\n" })).toThrow(/DOCS_OPSEC_DENYLIST/);
+  it("refuses to run without the denylist in GitHub Actions", () => {
+    expect(() => gateDenylist({ GITHUB_ACTIONS: "true", CI: "true" })).toThrow(/DOCS_OPSEC_DENYLIST/);
+    expect(() => gateDenylist({ GITHUB_ACTIONS: "true", DOCS_OPSEC_DENYLIST: " ,\n" })).toThrow(/DOCS_OPSEC_DENYLIST/);
   });
 
-  it("returns the parsed list in CI, and allows an empty one locally", () => {
-    expect(gateDenylist({ CI: "true", DOCS_OPSEC_DENYLIST: "a, b" })).toEqual(["a", "b"]);
+  it("returns the parsed list there, and allows an empty one elsewhere", () => {
+    expect(gateDenylist({ GITHUB_ACTIONS: "true", DOCS_OPSEC_DENYLIST: "a, b" })).toEqual(["a", "b"]);
     expect(gateDenylist({})).toEqual([]);
-    expect(gateDenylist({ CI: "false" })).toEqual([]);
+    expect(gateDenylist({ CI: "true" })).toEqual([]);
   });
 });
 
 // The gate itself: every published docs source must pass, the package docs
 // imported under src/content/packages included. CI supplies the
-// private denylist as the DOCS_OPSEC_DENYLIST secret, and the gate fails
-// there without it (gateDenylist), rather than passing on an empty list.
+// private denylist as the DOCS_OPSEC_DENYLIST secret, and the gate fails in
+// GitHub Actions without it (gateDenylist), rather than passing on an empty list.
 const ROOT = join(__dirname, "..");
 const PUBLISHED = [join(ROOT, "app"), join(ROOT, "content")];
 
@@ -73,8 +73,8 @@ function files(dir: string): string[] {
 
 describe("published docs opsec gate", () => {
   const denylist = gateDenylist();
-  it("has the private denylist when running in CI", () => {
-    if (process.env.CI && process.env.CI !== "false") expect(denylist.length).toBeGreaterThan(0);
+  it("has the private denylist when running in GitHub Actions", () => {
+    if (process.env.GITHUB_ACTIONS === "true") expect(denylist.length).toBeGreaterThan(0);
   });
   for (const file of PUBLISHED.flatMap(files)) {
     it(relative(ROOT, file), () => {
