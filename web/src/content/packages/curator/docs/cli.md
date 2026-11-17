@@ -98,7 +98,7 @@ $ argus-curator scan [OPTIONS] {source}
 * `--nudenet-url <str>`: NudeNet server origin, e.g. http://nudenet:8080 (ARGUS_CURATOR_NUDENET_URL)
 * `--erax-url <str>`: EraX-NSFW server origin, e.g. http://erax:8080 (ARGUS_CURATOR_ERAX_URL)
 * `--watermark-url <str>`: Watermark detector origin, e.g. http://watermark:8080 (ARGUS_CURATOR_WATERMARK_URL)
-* `--nsfw-threshold <float>`: Drop images whose exposed-nudity score is at or above this (0.2..1)
+* `--nsfw-threshold <float>`: Drop images whose exposed-nudity score is at or above this (0.2..1; 0.2, any reported exposure, is recommended)
 * `--nsfw-label <str>`: Per-class thresholds, comma-separated LABEL=score (e.g. FEMALE_BREAST_EXPOSED=0.5,BELLY_EXPOSED=0.8)
 * `--nsfw-exposed-labels <str>`: NudeNet classes --nsfw-threshold is taken over (default: the 5 exposed)
 * `--content-ratings <str>`: Keep only these NudeNet content ratings, comma-separated: safe, suggestive, explicit
@@ -148,6 +148,7 @@ $ argus-curator serve [OPTIONS]
 * `--cors`: Enable CORS for the localhost dev frontend (:3000)
 * `--cors-origin <list[str]>`: Allowed CORS origin (repeatable; implies CORS; or CURATOR_CORS_ORIGINS)
 * `--cors-any`: Allow ANY origin, credential-less (public demos only; implies CORS)
+* `--trusted-host <list[str]>`: DNS name this server is reached by, whose same-host writes are allowed (repeatable; or CURATOR_TRUSTED_HOSTS). IP literals and localhost need none.
 * `--source-root <str>`: Root that scan/thumb/upload paths resolve under (ARGUS_CURATOR_SCAN_ROOT)
 * `--export-root <str>`: Root that export destinations resolve under (ARGUS_CURATOR_EXPORT_ROOT)
 * `--allow-move`: Permit destructive mode=&quot;move&quot; exports (default: rejected)

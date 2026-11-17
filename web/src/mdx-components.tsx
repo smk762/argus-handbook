@@ -78,7 +78,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ),
     hr: () => <hr className="my-8 border-border" />,
     table: (props: ComponentPropsWithoutRef<"table">) => (
-      <div className="my-4 overflow-x-auto scrollbar-thin">
+      <div className="relative my-4 overflow-x-auto scrollbar-thin">
         <table className="w-full border-collapse text-sm" {...props} />
       </div>
     ),

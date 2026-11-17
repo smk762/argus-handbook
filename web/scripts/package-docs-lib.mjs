@@ -72,6 +72,59 @@ export const PACKAGES = [
   },
   // spec.md is darkroom's design doc.
   { short: "darkroom", package: "argus-darkroom", repo: "smk762/argus-darkroom", docs: ["README.md", "spec.md"] },
+  {
+    short: "mint",
+    package: "argus-mint",
+    repo: "smk762/argus-mint",
+    docs: [
+      "README.md",
+      "docs/catalogue.md",
+      "docs/drafts.md",
+      "docs/review.md",
+      "docs/customise.md",
+      "docs/deploy.md",
+      "docs/api.md",
+      "docs/cli.md",
+    ],
+  },
+  {
+    short: "survey",
+    package: "argus-survey",
+    repo: "smk762/argus-survey",
+    // SPEC.md is survey's design doc. TODO.md is a planning file and stays out.
+    docs: [
+      "README.md",
+      "SPEC.md",
+      "docs/steps.md",
+      "docs/methods.md",
+      "docs/datums.md",
+      "docs/data-sources.md",
+      "docs/provenance.md",
+      "docs/runbook.md",
+      "docs/atlas-showcase.md",
+      "docs/api.md",
+      "docs/cli.md",
+    ],
+    // The generated CLI reference is titled with the bare command name.
+    titles: { "docs/cli.md": "CLI reference" },
+  },
+  {
+    short: "mask",
+    package: "argus-mask",
+    repo: "smk762/argus-mask",
+    // spec.md is mask's design doc.
+    docs: [
+      "README.md",
+      "spec.md",
+      "docs/consent.md",
+      "docs/likeness-release.md",
+      "docs/consented-faces.md",
+      "docs/synthetic-faces.md",
+      "docs/splat-heads.md",
+      "docs/voices.md",
+      "docs/backgrounds.md",
+    ],
+  },
   // SUITE.md is left out: it is the suite map written for agents (every repo's CLAUDE.md imports it).
   { short: "cortex", package: "argus-cortex", repo: "smk762/argus-cortex", docs: ["README.md"] },
 ];

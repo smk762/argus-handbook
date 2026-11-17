@@ -86,7 +86,7 @@ const COMPONENTS = {
     </pre>
   ),
   table: ({ children }: Props<"table">) => (
-    <div className="my-4 overflow-x-auto scrollbar-thin">
+    <div className="relative my-4 overflow-x-auto scrollbar-thin">
       <table className="w-full border-collapse text-sm">{children}</table>
     </div>
   ),
