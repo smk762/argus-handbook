@@ -72,13 +72,16 @@ function files(dir: string): string[] {
 }
 
 describe("published docs opsec gate", () => {
-  const denylist = gateDenylist();
+  // Read inside the tests, so a missing secret in GitHub Actions fails them rather than the file's collection.
+  let cached: string[] | undefined;
+  const denylist = () => (cached ??= gateDenylist());
   it("has the private denylist when running in GitHub Actions", () => {
-    if (process.env.GITHUB_ACTIONS === "true") expect(denylist.length).toBeGreaterThan(0);
+    const list = denylist();
+    if (process.env.GITHUB_ACTIONS === "true") expect(list.length).toBeGreaterThan(0);
   });
   for (const file of PUBLISHED.flatMap(files)) {
     it(relative(ROOT, file), () => {
-      expect(opsecFindings(readFileSync(file, "utf8"), denylist)).toEqual([]);
+      expect(opsecFindings(readFileSync(file, "utf8"), denylist())).toEqual([]);
     });
   }
 });
