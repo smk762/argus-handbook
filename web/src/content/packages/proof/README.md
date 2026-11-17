@@ -61,25 +61,42 @@ argus-proof schema [--output PATH] [--check]
 ```bash
 argus-proof serve --port 8104 --cors   # peer to lens :8100, curator :8101, quarry :8102, forge :8103
 argus-proof serve --read-only          # replay/demo mode: serve stored reports, 403 live eval + writes
-curl -s localhost:8104/health          # {"status":"ok","service":"argus-proof","version":"...","read_only":false}
+curl -s localhost:8104/health          # {"status":"ok","service":"argus-proof","version":"...","read_only":false,"capabilities":["report_manifest"]}
 ```
 
 Routes (the backend of the argus-studio `/proof` view):
 
 ```
-GET  /health                            liveness + version + read_only flag
+GET  /health                            liveness + version + read_only flag + capabilities
 GET  /exports                           curator export dirs available to evaluate against
 GET  /models                            checkpoints + LoRAs under $PROOF_MODELS_DIR
 GET  /scorers                           scorers a run applies + whether each is installed
-POST /run/stream                        generate + score + store one run (NDJSON progress)
+POST /run/stream                        generate + score + store one run (NDJSON RunStreamFrame lines)
 GET  /reports                           stored report digests (run browser)
 GET  /report/{run_id}                   full EvalReport            PUT to store one
+GET  /report/{run_id}/manifest          the RunManifest behind a report (410 if its run dir is gone)
 GET  /report/{run_id}/refined           passing subset, refined ranks first
 GET  /report/{run_id}/image/{image_id}  a generated sample (ids only — no path input)
 GET  /report/{run_id}/image_at/{index}  sample by position — seed-free URL for blind review
 POST /report/{run_id}/hitl              apply a review; recomputes pass-rate + verdict
 POST /report/{run_id}/refine            second-pass re-rank (rank: null retracts)
+POST /purge/{run_id}                    devmode only: delete one run's report + run dir
+POST /purge                             devmode only: delete every report + run dir
 ```
+
+`/report/{run_id}/manifest` serves the SHA256-pinned setup (checkpoint, VAE,
+LoRAs, sampling, prompt, seeds) so a client can carry a passed run forward, e.g.
+studio's proof → darkroom handoff. It is `404` when there is no report and `410
+Gone` when the report was kept but the run dir was pruned. `/health` lists
+`report_manifest` in `capabilities`, so a client can tell an older proof (route
+absent) from a run with no manifest.
+
+The `/purge` routes are a dev tool, since reports are the evaluation record. They exist
+only with `ARGUS_PROOF_DEVMODE=1` (or `serve --devmode`), need a `{"confirm": "purge"}`
+body, return `409` while the run (or, for `POST /purge`, any run) is still generating,
+and read-only mode refuses them. A run's HITL review and refinement are stored in its
+report, so they go with it. `/health` echoes `devmode` and lists `purge` in
+`capabilities` only when the routes will work.
 
 Concurrent reviews of the same run are serialised with a per-run file lock, so
 a streaming run's report write and a reviewer's HITL save can't drop updates.
@@ -121,6 +138,25 @@ image's embedded **PNGInfo**, and emits a `RunManifest` that pins every
 checkpoint/LoRA by **SHA256** so the run reconstructs exactly. See
 [`templates/comfyui_sdxl_lora.json`](src/argus_proof/templates/comfyui_sdxl_lora.json)
 for the shipped example.
+
+**SDXL and Flux.** The template is chosen by the base checkpoint's *family*, its
+top-level folder under `checkpoints/`: `flux/…` renders
+[`templates/comfyui_flux_lora.json`](src/argus_proof/templates/comfyui_flux_lora.json)
+and every other family renders the SDXL template, so one server evaluates both.
+`PROOF_WORKFLOW_TEMPLATE` replaces both for every checkpoint. The Flux checkpoints
+are bare transformers, so the Flux template loads `t5xxl_fp8_e4m3fn.safetensors`
+and `clip_l.safetensors` (`DualCLIPLoader`, type `flux`) and `ae.safetensors`
+(`VAELoader`) by those names; they must be in ComfyUI's `clip/` and `vae/`
+folders. Flux takes no negative prompt (the template zeroes the positive) and runs
+at `cfg` 1 with `sampling.guidance` (the `$guidance` slot, a `FluxGuidance` node).
+A request that leaves `cfg`/`sampler`/`scheduler`/`guidance` out gets its family's
+defaults: SDXL cfg 7, `dpmpp_2m`/`karras`; Flux cfg 1, `euler`/`simple`, guidance 3.5.
+
+Nothing a run sets is silently dropped. A run is refused when it sets a value
+the template has no slot for: a VAE, a non-empty negative prompt, `guidance`,
+or a `clip_skip` above 2. The `diffusers` and `a1111` backends refuse `guidance`
+outright. `clip_skip` is sent to ComfyUI as `-max(clip_skip, 2)`: SDXL uses the
+penultimate layer, and `-1` blanks some checkpoints.
 
 **More backends.** `get_backend(name, ...)` selects the engine by config
 (`PROOF_BACKEND` in [`.env.example`](.env.example)); scoring/report code is
@@ -228,20 +264,38 @@ it to a **Guard-class policy taxonomy** (sexual / violence / hate / self-harm /
 weapons / illegal) — over both the **generated images** and the **input prompts /
 captions**, so a toxic prompt is flagged even when its output is clean.
 
-> **Status: the bundled Llama Guard adapters are stubs.** `LlamaGuardImageDetector`
-> (Llama-Guard-3-11B-Vision) and `LlamaGuardTextDetector` (text-only
-> Llama-Guard-3-8B) map Guard hazard codes onto the taxonomy, but their model call
-> (`_classify`) is not implemented yet and raises `NotImplementedError`. With the
-> `[moderation]` extra installed, a default `PolicyModerator()` therefore **fails
-> loud** rather than silently reading everything as safe. Until the adapter lands,
-> inject your own detectors (any object with `name`, `version`, `is_available()`
-> and `moderate_image(path)` / `moderate_text(text)` returning per-category
-> `[0,1]` scores):
+The default detectors are **Llama Guard 3**: `LlamaGuardImageDetector`
+(`meta-llama/Llama-Guard-3-11B-Vision`, about 22 GB in bf16) for outputs and
+`LlamaGuardTextDetector` (`meta-llama/Llama-Guard-3-8B`, about 16 GB) for prompts and
+captions. Install `argus-proof[moderation]`. Both checkpoints are **gated** on Hugging
+Face: accept the license on each model page and set `HF_TOKEN`. The weights download
+at first use; nothing is bundled. Device placement goes through argus-cortex's
+`resolve_device` (`device="auto"` picks cuda, then mps, then cpu).
+
+Each verdict (`safe`, or `unsafe` plus hazard codes `S1`–`S14`) maps onto the taxonomy.
+A flagged category scores P(unsafe) at the verdict token rather than a hard 1.0.
+Moderation fails loud rather than reading as safe. A model that can't load (no
+token, license not accepted) or an unreadable verdict raises `ModerationError`, and an
+`unsafe` verdict naming no code flags every category. An image is sent with the
+neutral prompt `"Describe this image."`, so a flag comes from the image.
+
+> **Licenses.** Llama-Guard-3-8B is under the Llama 3.1 Community License, and
+> Llama-Guard-3-11B-Vision under the Llama 3.2 Community License. The 3.2 license
+> does **not** grant its rights for multimodal models to individuals domiciled in,
+> or companies with their principal place of business in, the European Union
+> (end users of a product built on them are exempt). Both carry Meta's acceptable
+> use policy. argus-proof only downloads the weights at runtime and doesn't
+> redistribute them. Check the terms against your use, and pass your own detectors
+> if they don't fit.
+
+Any object with `name`, `version`, `is_available()` and `moderate_image(path)` /
+`moderate_text(text)` returning per-category `[0,1]` scores can replace them:
 
 ```python
 from argus_proof.moderation import PolicyModerator, moderate_images, moderate_texts
 
-mod = PolicyModerator(image_detectors=[MyImageGuard()], text_detectors=[MyTextGuard()])
+mod = PolicyModerator()                          # Llama Guard 3 Vision + text
+# mod = PolicyModerator(image_detectors=[MyImageGuard()], text_detectors=[MyTextGuard()])
 out = moderate_images(image_paths, mod)         # per-category tails over the outputs
 inp = moderate_texts(prompt_grid_variants, mod) # ...and over the inputs
 out.flagged()                                   # e.g. ["violence", "hate"], worst first
@@ -251,9 +305,9 @@ report.scorers.append(mod.provenance("output")) # version-stamp the Guard model 
 Each category gets a **tail** view (any-hit / max / 95th percentile — the extremes
 that matter, not the mean, same rule as `safety`), combined conservatively across
 an ensemble (most-unsafe detector wins). Detectors are pluggable and injectable, so
-the taxonomy/ensemble/tail logic is dependency-free and unit-tested; the Llama
-Guard adapters (once implemented) are the only part that needs the
-`[moderation]` extra. A reviewer's HITL flag attributes to a
+the taxonomy/ensemble/tail logic is dependency-free and unit-tested. Of the Llama
+Guard adapters, only the model call needs the `[moderation]` extra; verdict parsing
+and mapping are unit-tested. A reviewer's HITL flag attributes to a
 category via `RejectReason.category`. CSAM matching stays a **separate** policy gate
 (Thorn Safer / PhotoDNA), not an ML metric here.
 
