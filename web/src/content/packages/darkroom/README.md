@@ -179,7 +179,7 @@ none). Records name the template in `request.workflow`, beside `workflow_sha256`
 
 | Family | Files | Sampling |
 |---|---|---|
-| `sdxl` | `sdxl`, `sdxl+lora1`, `sdxl+lora2`; image-to-image `sdxl+img2img`, `sdxl+lora1+img2img`; inpainting `sdxl+inpaint`, `sdxl+lora1+inpaint` | the usual: a negative prompt, `cfg` around 5, `clip_skip` |
+| `sdxl` | `sdxl`, `sdxl+lora1`, `sdxl+lora2`; image-to-image `sdxl+img2img`, `sdxl+lora1+img2img`; inpainting `sdxl+inpaint`, `sdxl+lora1+inpaint`, `sdxl+lora2+inpaint` | the usual: a negative prompt, `cfg` around 5, `clip_skip` |
 | `flux` | `flux`, `flux+lora1`, `flux+lora2` | `guidance` (around 3.5 for dev), `cfg` 1, `simple` or `beta`, no negative prompt. Schnell: about 4 steps |
 | `flux-klein` | `flux-klein` | FLUX.2 Klein 9B (distilled): `cfg` 1, about 4 steps, no negative prompt |
 | `sd35` | `sd35` | SD3.5 Large: a negative prompt, `cfg` around 4, `euler` with `sgm_uniform` |
@@ -294,7 +294,7 @@ silent fall back to the unexpanded prompt.
 
 | | |
 |---|---|
-| `GET /health` | version, whether each backend answers (booleans), `nsfw_allowed`, `sfw_available`, `devmode`, `read_only`, age-check status, `minor_exposed` (the rule), `workflows` (names), `generating`, `gpu` as `{coordinator, in_flight, limit}`, and `nudenet_detector` (`640m`, `320n`, or `null` when NudeNet does not say or does not answer) |
+| `GET /health` | version, whether each backend answers (booleans), `nsfw_allowed`, `sfw_available`, `devmode`, `read_only`, `demo` (true only for `make demo`'s fake backends), age-check status, `minor_exposed` (the rule), `workflows` (names), `generating`, `gpu` as `{coordinator, in_flight, limit}`, and `nudenet_detector` (`640m`, `320n`, or `null` when NudeNet does not say or does not answer) |
 | `GET /policies` | `default` (the server's enforcing policy) and `policies`, each as `{name, mode, summary, illegal_rules, enforceable, text}`. `mode` is `sfw` or `nsfw`. `illegal_rules` lists only the rules that make an image illegal, as `{code, name}`. `enforceable` is false for an NSFW policy without `ALLOW_NSFW`, and for an SFW policy without NudeNet. `text` is the policy wording sent to SingGuard (`null` for `default`, which uses SingGuard's own rules) |
 | `GET /models` | checkpoints as `{name, family, lora_counts, img2img_lora_counts, inpaint_lora_counts}`, LoRAs and VAEs as `{name}` (`loras`, `vaes`), `workflows` as `{name, family, loras, mode, img2img, slots}` (`mode` is `txt2img`, `img2img` or `inpaint`; `img2img` is true for plain image-to-image only), `default_checkpoint`, plus `samplers` and `schedulers` as ComfyUI offers them (empty lists when ComfyUI does not say) |
 | `POST /preflight` | the text check alone. It does not expand: an expansion differs per run, so `expansion_applied` is `false`. An `init_image` is not checked here, only during a generation |
@@ -401,6 +401,8 @@ rule places exposure:
   deletes when it overlaps a box estimated under 18, or overlaps no box at all; one overlapping only adults' boxes does
   not. It fails closed: a face under 18 whose body was not found makes any exposure count, and so does an exposed score
   with no exposed detection box to place.
+  Boxes are trusted only from a NudeNet server that names its detector on `/health`; the upstream 320n image does
+  not (and offsets its boxes), so with it the image is judged by `frame`.
 
 Both ignore the user's NudeNet threshold. The record's `age.minor_exposed_rule` says which rule decided, and
 `age.people` keeps every person box with the face it was matched to (`face_index`), and `nudenet.detections` keeps
