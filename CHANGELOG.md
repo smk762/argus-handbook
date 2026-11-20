@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-20
+
 ### Added
 
 - argus-mint, argus-survey and argus-mask under `/packages/` (#5): each README, `docs/*.md` and design doc (survey's `SPEC.md`, mask's `spec.md`), with home-page entries linking their demos (Assay, Sightline, Mask).
@@ -26,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Imported package docs: a reference-style image (`![CI][badge]`) is dropped like an inline badge, or loads from the vendored copy when it is the package's own; a malformed `%` escape in a doc's link no longer fails the build, and a root-relative link is decoded like a relative one; GFM footnote references and back-links land (their `id`s are kept); an ordered list keeps its `start` number.
 - Hand-written pages: two `##`/`###` headings with the same text get distinct ids (`usage`, `usage-1`), set at compile time by `web/scripts/remark-heading-ids.mjs`.
 - The opsec gate fails in GitHub Actions when `DOCS_OPSEC_DENYLIST` is unset or empty (a fork or Dependabot run, a renamed secret) instead of passing without the private denylist.
-
 - Package docs synced to every `dev` HEAD again (#6): the LAN host name the opsec gate refused was replaced upstream (smk762/argus-lens#127, smk762/argus-curator#178, smk762/argus-proof#95, smk762/argus-cortex#119, smk762/argus-mask#140).
 - A link in a package doc's table no longer widens the page on a phone: the table's scroll wrapper is now positioned, so the link's visually hidden "(opens in new tab)" text stays inside it.
+- A theme choice survives a browser that blocks cookies (#11): the vendored Dragonhound shared layer is re-synced to dh-shared 1.2.10, which falls back to `localStorage`.
+
+[Unreleased]: https://github.com/smk762/argus-handbook/compare/v0.1.0...dev
+[0.1.0]: https://github.com/smk762/argus-handbook/releases/tag/v0.1.0
