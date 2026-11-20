@@ -5,8 +5,8 @@
       "package": "argus-lens",
       "repo": "smk762/argus-lens",
       "branch": "dev",
-      "commit": "03a882ac147b75c319c9fd6c8c4938bdc10369bc",
-      "version": "0.14.0",
+      "commit": "61d8c16a6a4892f9c2cd3410160fd15016838997",
+      "version": "0.14.1.dev9+g61d8c16",
       "pages": [
         {
           "file": "README.md",
@@ -27,8 +27,8 @@
       "held": [],
       "files": {
         "src/content/packages/lens/docs/caption-result.md": "5a413cd0dcf7c7d712b7fb37db0be2a0b9203458110d670374c6fc57907f95f0",
-        "src/content/packages/lens/docs/cli.md": "c8fde67f3202268c62ea02561476e826d282ab055fe2eac59a86355b7506cf09",
-        "src/content/packages/lens/README.md": "95b565f35a67db63efc08497645111d5f9acca293c0a5eb7848c99bc6cdb71fb"
+        "src/content/packages/lens/docs/cli.md": "e2f7c1794b7ad5750aeaa1c582601ea96ec47c1da286997c99f489180757d3c1",
+        "src/content/packages/lens/README.md": "017d17191ae1dcc1c441d96434b6eb98a96c18610ea3ea758d2788931931022b"
       }
     },
     "curator": {
@@ -179,8 +179,8 @@
       "package": "argus-forge",
       "repo": "smk762/argus-forge",
       "branch": "dev",
-      "commit": "a9ff3281b72fa82ae93b672b306853ccbe344355",
-      "version": "0.3.0",
+      "commit": "2415e84c778109700d53599f669bcdf901ff59d2",
+      "version": "0.3.1.dev2+g2415e84",
       "pages": [
         {
           "file": "README.md",
@@ -190,7 +190,7 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/forge/README.md": "2856775175dc7b2fb0e102d2cc65dbafa793e0ce0e6eec3bbbe7a67aa34c0017"
+        "src/content/packages/forge/README.md": "7e9d1fa117b8971e5737642898fcb3c6c4e99bde6d122061db48b2f42d779b4b"
       }
     },
     "proof": {
@@ -215,8 +215,8 @@
       "package": "argus-atlas",
       "repo": "smk762/argus-atlas",
       "branch": "dev",
-      "commit": "29f1204bfd1fb258c5108da33204b9801e55a12b",
-      "version": "0.4.0",
+      "commit": "597cf38d0cfa485fc310d3d2f64d596f78badd57",
+      "version": "0.4.1",
       "pages": [
         {
           "file": "README.md",
@@ -283,8 +283,8 @@
       "package": "argus-darkroom",
       "repo": "smk762/argus-darkroom",
       "branch": "dev",
-      "commit": "fe32c9e18ed5269ab09fd552be963025401ed2b9",
-      "version": "0.3.0",
+      "commit": "567ef35ba8ded1dea09ab8dafc05c00f55b4abac",
+      "version": "0.3.1.dev2+g567ef35",
       "pages": [
         {
           "file": "README.md",
@@ -307,8 +307,8 @@
       "package": "argus-mint",
       "repo": "smk762/argus-mint",
       "branch": "dev",
-      "commit": "f4289533e489273058235210893584a0fe838b01",
-      "version": "0.3.0",
+      "commit": "72b4f58d60545d289058bc612233e3c43898aa86",
+      "version": "0.3.1.dev2+g72b4f58",
       "pages": [
         {
           "file": "README.md",
@@ -367,8 +367,8 @@
       "package": "argus-survey",
       "repo": "smk762/argus-survey",
       "branch": "dev",
-      "commit": "340f302198395d1858c9e2af99a538771a818aa9",
-      "version": "0.2.0",
+      "commit": "594eac4798080bedb8d9f827700a1cfd4e476d2b",
+      "version": "0.2.1.dev2+g594eac4",
       "pages": [
         {
           "file": "README.md",
@@ -431,7 +431,7 @@
         "public/package-docs/survey/docs/img/viewer.png": "f370794536b37dcb6088d3aa81b22f2f7b1ba92a4bdd5219564e25b138d8bb45",
         "src/content/packages/survey/docs/api.md": "22727ae74a6028b754069fb82cb2190d790ab500b15586eb5a4b6187d8b885a0",
         "src/content/packages/survey/docs/atlas-showcase.md": "5db2fa11f86fc9cc205eabe3776d6ca390c4a284de932d4c044f4bff73689932",
-        "src/content/packages/survey/docs/cli.md": "e73ca5f38a40c335e1d1850a9626ea9f942f4d0c97a005599a9f2c786070b838",
+        "src/content/packages/survey/docs/cli.md": "fd320ce00a41f2306519d7a3bbb00c5cf940164712fed98ea4796d4a0f4ed3db",
         "src/content/packages/survey/docs/data-sources.md": "86902eadf9bbb1b1cdb0c9ca0f5eccedbca5da097b4871d3ddf0abf34038dd09",
         "src/content/packages/survey/docs/datums.md": "0825a842f6a52997a280198f92a63e198573fb8114fbdc46e23f116f8e0dbf6d",
         "src/content/packages/survey/docs/methods.md": "6727b64665bc0ae2d46f7fd445111b255e408d718d5f5c74c0f30c10efa89f5f",
@@ -514,8 +514,8 @@
       "package": "argus-cortex",
       "repo": "smk762/argus-cortex",
       "branch": "dev",
-      "commit": "30ad1288fa950e6167c4e1c001f6f44a55865548",
-      "version": "0.10.1.dev22+g30ad128",
+      "commit": "281bfe97e832fdcf592279fd2b0f0825d83f4b7a",
+      "version": "0.10.1.dev54+g281bfe9",
       "pages": [
         {
           "file": "README.md",
@@ -525,7 +525,7 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/cortex/README.md": "c88525e885d6630687bb97c33f56388492613eb60f741f41a78c29a1ddc5ce85"
+        "src/content/packages/cortex/README.md": "8d7b8e46110e10813626601f26dc7863ac00a4a726bb79d1b7ab776a8e10eb40"
       }
     }
   }
