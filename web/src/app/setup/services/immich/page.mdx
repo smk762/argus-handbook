@@ -4,7 +4,7 @@ import { ServiceFacts } from "@/components/docs/ServiceFacts";
 export const metadata = pageMetadata({
   title: "Immich",
   path: "/setup/services/immich/",
-  description: "Connect argus-lens to an Immich photo library.",
+  description: "Connect argus-lens to an Immich photo library, and run Immich's machine-learning server on a GPU host shared with the suite.",
 });
 
 # Immich
@@ -25,3 +25,125 @@ export const metadata = pageMetadata({
 Lens reads both on each request, so you don't need to restart it to change them.
 See [Immich](https://github.com/smk762/argus-lens/blob/dev/README.md#immich) in
 lens's README for the endpoints and the write-back behaviour.
+
+## Remote machine learning on the GPU host
+
+Immich's own machine-learning server (`immich-machine-learning`) handles Smart
+Search, face detection and face recognition. Its CUDA build can run on the
+[GPU host](/setup/services/gpu-host), next to Ollama, agent-composer's sidecars
+or ComfyUI. Like ComfyUI, it runs outside the stack, but it uses the same VRAM
+(see [Sharing one GPU](/setup/services/gpu-host#sharing-one-gpu)).
+
+The ML host doesn't need the photo library. The Immich server sends the image
+bytes with each request, so the ML container needs only its model cache.
+
+### Compose on the GPU host
+
+A minimal `compose.yaml` on `<GPU_HOST>`:
+
+```yaml
+name: immich-remote-ml
+
+services:
+  immich-machine-learning:
+    # The -cuda build, at the Immich server's version (e.g. IMMICH_VERSION=v3.4.2).
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:?set to the Immich server version}-cuda
+    volumes:
+      - model-cache:/cache
+    ports:
+      - "3003:3003"           # the Immich server reaches it over the LAN
+    # MACHINE_LEARNING_MODEL_TTL is left at its default (300 s): see below.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  model-cache:
+```
+
+- **Keep the tag at the server's version.** Upgrade the ML container whenever you
+  upgrade the Immich server.
+- **`restart: unless-stopped`, not `always`.** A container that was stopped on
+  purpose, by you or by a GPU broker, stays stopped across a Docker or host
+  restart.
+- **`MACHINE_LEARNING_MODEL_TTL`** is how long a model can sit idle before the
+  server unloads it (300 seconds by default). This is immich-ml's own idle
+  unload, and nothing else in the suite manages it. On a small shared card,
+  keep the default or set something shorter. Don't set it to `0`: that turns
+  unloading off, so every model stays in VRAM.
+
+### Point Immich at it, with a fallback
+
+In Immich, go to **Administration → Settings → Machine Learning → URL** and list
+two URLs. Immich tries them in order:
+
+1. `http://<GPU_HOST>:3003`, the GPU server.
+2. A fallback. The CPU ML container in the Immich stack works:
+   `http://immich-machine-learning:3003`.
+
+With the fallback, Immich keeps working when the GPU host is busy, stopped or
+down.
+
+> **Always include the fallback.** If the list has only the GPU host and that
+> container is stopped, Immich has nothing to fall back on, so Smart Search and
+> face jobs fail. After you fix the list, open **Administration → Jobs** and run
+> **Missing** for Smart Search, Face Detection and Facial Recognition to catch
+> up the assets that failed.
+
+### Known issue: the worker hangs at startup
+
+On some hosts running Immich v3.3 or earlier, the gunicorn worker hangs before it logs "Application startup
+complete", and the container goes unhealthy. `/ping` accepts the connection but
+never answers. The cause is the stock Rich log handler, which can deadlock right
+after gunicorn forks the worker
+([immich-app/immich discussion #28073](https://github.com/immich-app/immich/discussions/28073)).
+
+Up to v3.3.x, the image reads its logging config from
+`/usr/src/immich_ml/log_conf.json`. To work around the hang, mount this file
+over it. It replaces the Rich handler with a plain `StreamHandler`:
+
+```json
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "plain": {
+      "format": "[%(asctime)s] %(levelname)-8s %(message)s",
+      "datefmt": "%m/%d/%y %H:%M:%S"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "stream": "ext://sys.stdout",
+      "formatter": "plain"
+    }
+  },
+  "root": { "level": "INFO", "handlers": ["console"] },
+  "loggers": {
+    "gunicorn.error": { "level": "INFO", "handlers": ["console"], "propagate": false },
+    "gunicorn.access": { "level": "WARNING", "handlers": ["console"], "propagate": false },
+    "uvicorn": { "level": "INFO", "handlers": ["console"], "propagate": false },
+    "uvicorn.access": { "level": "WARNING", "handlers": ["console"], "propagate": false }
+  }
+}
+```
+
+Setting the access loggers to `WARNING` also keeps healthcheck `/ping` requests
+out of the log. Save the file next to the compose file and add the mount:
+
+```yaml
+    volumes:
+      - model-cache:/cache
+      - ./log_conf.json:/usr/src/immich_ml/log_conf.json:ro
+```
+
+From v3.4.0 on, the logging config is built into the code
+([immich-app/immich#32220](https://github.com/immich-app/immich/pull/32220)) and
+the image no longer reads that file, so the mount does nothing. If a v3.4 or
+later container hangs the same way, report it upstream.

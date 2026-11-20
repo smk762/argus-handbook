@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Immich: a "Remote machine learning on the GPU host" section (#15). It covers a minimal compose for the CUDA `immich-machine-learning` server, `MACHINE_LEARNING_MODEL_TTL`, the ML URL list with a CPU fallback (and what fails without one), and the Rich-logging startup hang with its `log_conf.json` workaround, which applies only up to v3.3.x. The GPU host's "Sharing one GPU" now covers immich-ml, which doesn't take part in the lease (iris support: smk762/argus-iris#29).
+
 ### Fixed
 
 - Link previews: every page now has a 1200×630 card image (`web/src/app/opengraph-image.tsx`, drawn at build time and served as `image/png`) and a `summary_large_image` card. The home page's title no longer repeats the site name ("Argus docs · Argus docs"), and pages keep the site name and type in their Open Graph tags.
