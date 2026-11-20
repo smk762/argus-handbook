@@ -648,6 +648,8 @@ export const SERVICES: Service[] = [
     guides: [
       { label: "Install Immich with Docker Compose", url: "https://docs.immich.app/install/docker-compose/" },
       { label: "Immich CLI", url: "https://docs.immich.app/features/command-line-interface/" },
+      { label: "Remote machine learning", url: "https://docs.immich.app/guides/remote-machine-learning/" },
+      { label: "ML hardware acceleration", url: "https://docs.immich.app/features/ml-hardware-acceleration/" },
     ],
   },
   {
