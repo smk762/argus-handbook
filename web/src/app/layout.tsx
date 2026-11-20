@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
   description: DESCRIPTION,
   openGraph: { type: "website", siteName: SITE_NAME, description: DESCRIPTION },
-  twitter: { card: "summary", description: DESCRIPTION },
+  twitter: { card: "summary_large_image", description: DESCRIPTION },
 };
 
 // The browser chrome follows the page. These are the family's --dh-bg values; a <meta> can't read a CSS variable.

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Link previews: every page now has a 1200×630 card image (`web/src/app/opengraph-image.tsx`, drawn at build time and served as `image/png`) and a `summary_large_image` card. The home page's title no longer repeats the site name ("Argus docs · Argus docs"), and pages keep the site name and type in their Open Graph tags.
+
 ## [0.1.0] - 2026-11-20
 
 ### Added

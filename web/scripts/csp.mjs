@@ -87,6 +87,9 @@ export const HEADERS = `/*
   Permissions-Policy: camera=(), geolocation=(), microphone=()
   Cross-Origin-Opener-Policy: same-origin
   Strict-Transport-Security: max-age=31536000
+
+/opengraph-image
+  Content-Type: image/png
 `;
 
 function htmlFiles(dir) {
