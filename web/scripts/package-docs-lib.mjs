@@ -125,6 +125,24 @@ export const PACKAGES = [
       "docs/backgrounds.md",
     ],
   },
+  {
+    short: "scout",
+    package: "argus-scout",
+    repo: "smk762/argus-scout",
+    docs: [
+      "README.md",
+      "docs/config.md",
+      "docs/sources.md",
+      "docs/signals.md",
+      "docs/narrative.md",
+      "docs/channels.md",
+      "docs/api.md",
+      "docs/operations.md",
+      "docs/cli.md",
+    ],
+    // The generated CLI reference is titled with the bare command name.
+    titles: { "docs/cli.md": "CLI reference" },
+  },
   // SUITE.md is left out: it is the suite map written for agents (every repo's CLAUDE.md imports it).
   { short: "cortex", package: "argus-cortex", repo: "smk762/argus-cortex", docs: ["README.md"] },
 ];
