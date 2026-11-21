@@ -24,7 +24,7 @@ Services on this page have their own setup pages under
 
 | | |
 |---|---|
-| **Live** | One compose profile per tool. `lens` brings argus-lens and [Ollama](/setup/services/ollama). `curator` brings argus-curator and [NudeNet](/setup/services/nudenet). `forge`, `proof` and `atlas` each bring their service, and atlas bakes through [ComfyUI](/setup/services/comfyui). `gallery` brings argus-quarry. `survey` brings argus-survey and Sightline. `darkroom` brings argus-darkroom, which needs your own [SingGuard](/setup/services/singguard) and ComfyUI. `full` is everything except `darkroom`, `survey` and `mask`. |
+| **Live** | One compose profile per tool. `lens` brings argus-lens and [Ollama](/setup/services/ollama). `curator` brings argus-curator and [NudeNet](/setup/services/nudenet). `forge`, `proof` and `atlas` each bring their service, and atlas bakes through [ComfyUI](/setup/services/comfyui). `gallery` brings argus-quarry. `survey` brings argus-survey and Sightline. `darkroom` brings argus-darkroom, which needs your own [SingGuard](/setup/services/singguard) and ComfyUI. `full` is everything except `darkroom`, `survey` and `mask`. `/curate`'s Body pose block needs curator's [body-pose stage](/setup/body-pose), which the compose doesn't run. |
 | **Stand-in** | With no profile, `/curate` serves a bundled read-only sample (`ARGUS_CURATOR_UI_MODE=demo`). The static build replays recorded output on every page, `/darkroom` included. |
 | **No-GPU command** | `docker compose up`, or `cd frontend && npm ci && npm run build:static && npx serve out` |
 
@@ -85,6 +85,6 @@ public: see [argus-atlas](https://github.com/smk762/argus-atlas#readme).
 
 | | |
 |---|---|
-| **Live** | argus-curator (GPU image), with [NudeNet](/setup/services/nudenet), [EraX-NSFW](/setup/services/erax-nsfw), the [watermark detector](/setup/services/watermark-detector) and [SingGuard](/setup/services/singguard). |
+| **Live** | argus-curator (GPU image), with [NudeNet](/setup/services/nudenet), [EraX-NSFW](/setup/services/erax-nsfw), the [watermark detector](/setup/services/watermark-detector) and [SingGuard](/setup/services/singguard). Its body-pose notes need curator's [body-pose stage](/setup/body-pose). |
 | **Stand-in** | A recorded data tape (`web/public/data-tape/`). |
 | **No-GPU command** | `make pages` (static export of the tape) |

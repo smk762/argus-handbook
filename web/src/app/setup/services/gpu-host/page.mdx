@@ -39,6 +39,11 @@ at `/run/argus-gpu`), or each one gets its own lock and they no longer wait for
 each other. Lens unloads idle models after `ARGUS_MODEL_IDLE_SECONDS` (300 by
 default) to give VRAM back.
 
+argus-puppet's GPU image takes the same lease (kind `pose`) for its own work,
+and its CPU image takes none. A service that holds a lease on the card while it
+waits for puppet's answer can starve puppet's lease; run puppet on the CPU, or
+on another card, to avoid it (see [Body pose](/setup/body-pose#the-limits)).
+
 ComfyUI usually runs outside the stack on the same host, and the stack reaches it at
 `http://host.docker.internal:8188`. It doesn't take part in the lease, so a big
 render can still collide with a caption run.

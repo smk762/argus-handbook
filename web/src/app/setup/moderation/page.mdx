@@ -74,6 +74,10 @@ in curator and the
 in darkroom. Darkroom gets the estimate from curator's `POST /faces`
 (`ARGUS_DARKROOM_AGE_URL`) or from its own `[age]` extra.
 
+argus-puppet's pose library uses the same estimate: `library build --age-check`
+keeps an image only when every face and body reads 18 or over, and leaves out
+any image curator can't vouch for (see [Body pose](/setup/body-pose#control-images-and-the-pose-library)).
+
 The age is never sent to SingGuard as a verdict input.
 
 ## Where each is used

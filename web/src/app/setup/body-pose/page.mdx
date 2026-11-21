@@ -1,0 +1,187 @@
+import { pageMetadata } from "@/lib/pageMeta";
+
+export const metadata = pageMetadata({
+  title: "Body pose",
+  path: "/setup/body-pose/",
+  description:
+    "How argus-puppet's body-pose measurements feed curator, Studio and Cull, forge, proof and lens: pose coverage before training, pose collapse after it, and the limits of the numbers.",
+});
+
+# Body pose
+
+[argus-puppet](/packages/puppet) finds the people in an image, places 133
+keypoints on each, and turns the main subject's body joints into numbers: how
+varied a set's poses are, whether one pose dominates it, and whether a LoRA's
+outputs sit suspiciously close to its training frames' poses. It also draws
+skeleton control images for a pose ControlNet. It has no Studio stage of its
+own. Curator, proof and lens call it over HTTP and keep only plain values (labels,
+cluster ids, scores), never keypoints.
+
+The curator, proof, lens, forge, Studio and Cull integrations below are merged
+on each package's `dev` branch and arrive with its next release.
+
+## What puppet measures
+
+Every measurement uses one person per image, the **primary** subject (the
+largest, most confident body, or the body that curator's primary face belongs
+to). Its 17 body joints are centred on the hips and scaled by torso length, so
+two poses compare in "torso units" whatever the subject's size or position. A
+mirrored pose counts as the same pose.
+
+| Number | What it says |
+|---|---|
+| `usable` | Images with a measurable pose. One needs a confident hip and shoulder and 8 of 17 confident body joints |
+| `diversity` | 0 to 1: roughly the chance that two poses drawn at random are clearly different. On the synthetic sets one pose repeated scored 0.2 or less and a broad mix 0.8 or more |
+| Clusters, `largest_cluster_share` | Poses grouped by similarity (0.25 torso units: jittered copies of one pose merge, "arms out" and "arms up" stay apart), and the largest group's share of the usable poses |
+| Labels | Coarse `stance` (standing, jumping, crouching, seated, lying), `arms` (up, out, down, mixed) and `facing` (front, back, left, right), from geometry rules. `unknown` when the joints a rule needs weren't confident |
+| A close match | An output pose within 0.04 torso units of a training pose. It means "the same pose", not "a copied frame" |
+
+The definitions and their calibration are in puppet's
+[metrics page](/packages/puppet/metrics).
+
+## The limits
+
+Read these before acting on any pose number.
+
+- **Every threshold is calibrated on synthetic poses, not real LoRA runs.** That
+  covers the diversity floor (0.3), the collapse cluster share (0.75), the
+  cluster cut (0.25), the close-match distance (0.04), the copying flag
+  (0.1 above the training set's own baseline), and the 40% and 75% cut-offs
+  Studio and Cull use. They were set on parametric stick figures with jitter
+  ([calibration](/packages/puppet/metrics#calibration)). The joint-score cut that
+  decides whether a joint counts (0.3) rests on two real photos. Proof's pose gate
+  is off by default for this reason: confirm the thresholds on one real run
+  first.
+- **Close-ups and tight crops are unusable, and that is correct.** The pose is
+  measured against the hips and shoulders. A head-and-shoulders portrait, a
+  waist-up crop or a legs-only crop has nothing to measure against, so it is
+  `unusable`, and a set made mostly of them reads **not measurable** rather than
+  scoring. Each unusable image says why (`no_confident_hip`,
+  `no_confident_shoulder`, `too_few_joints`, …;
+  [the reasons](/packages/puppet/metrics#why-a-pose-is-unusable)). Curator,
+  Studio and Cull show how many images have no usable pose. A face-centred
+  portrait set gets little from puppet.
+- **Pose is measured in the image plane.** One stance shot frontal and in
+  profile is two poses. A set that varies only the camera angle will pass a
+  diversity check.
+- **The training-data terms.** The detector and pose weights (YOLOX, DWPose) are
+  published under Apache-2.0, but DWPose was trained on COCO-WholeBody, whose
+  dataset terms say research and non-commercial use. So was every whole-body
+  model the project found. Anyone with a commercial use should make their own
+  assessment ([the licence position](/packages/puppet/models#the-licence-position)).
+- **GPU lease contention.** Puppet's GPU image takes its own GPU lease (kind
+  `pose`) through argus-iris or the host lease. A caller that holds a lease on
+  the same GPU while it waits for puppet's answer can starve it: puppet answers
+  `503 GPU busy`, the caller retries a few times, then counts the images as
+  failed. Running puppet on the CPU image takes no lease and avoids this
+  (measured cost on the CPU: [models](/packages/puppet/models#measured-cost)).
+- **The pose library's age check fails closed.** See
+  [below](#control-images-and-the-pose-library).
+
+## Where it fits
+
+### Before training: pose coverage
+
+With `ARGUS_CURATOR_PUPPET_URL` set, every curator scan poses each image that
+passed the earlier checks and records `pose_check` (`ok`, `unusable`,
+`no_person`, `failed`), `pose_labels` and a scan-level `pose_cluster` per image,
+and a `pose` block in the scan summary (diversity, cluster shares, how many
+images were usable). Manifest 2.7 carries the labels and cluster to the export.
+See curator's [body pose page](https://github.com/smk762/argus-curator/blob/dev/docs/body-pose.md).
+The stage never fails a scan.
+
+Three places read those fields:
+
+- **Studio** (`/curate`, Selection coverage) shows a Body pose block: the
+  selection's stance, arms and facing, the share of its most common pose cluster
+  with that cluster's most central image, and how many selected images have no
+  usable pose and why. One pose at 40% or more of at least 10 clustered images is
+  marked as a coverage gap, 75% as a strong one.
+- **Cull** (Evaluate keep set) adds a note when one pose cluster holds 40% or
+  more of the kept frames that have one, and says the keep set has collapsed
+  onto it at 75%.
+- **forge** warns when 75% or more of the posed training images (at least 10)
+  share one cluster, naming the pose. The warning changes no config.
+
+A concept LoRA trained on 30 versions of the same jump shot learns the jump
+shot. This is the place to catch it: add other poses, or accept it knowingly.
+
+### After training: pose collapse and copying
+
+With `PROOF_PUPPET_URL` set, proof poses a run's outputs and adds a pose block to
+the eval report: diversity, the largest cluster and its medoid image, label
+coverage. When the training export is readable on the same host it poses the
+training frames too and compares the two sets.
+
+```bash
+argus-proof gate eval_report.json --min-pose-diversity 0.3 --max-pose-cluster-share 0.75
+```
+
+- The gate is **off by default**. Turned on, it first checks the run is
+  measurable (at least 10 usable poses, half the run usable, 80% of pairs
+  comparable);
+  an unmeasured run never passes.
+- Diversity under the floor, or one cluster at or over the share, fails with the
+  run-level code `pose_collapse`, naming the pose the outputs collapsed onto.
+- Pose **copying** (outputs closer to training poses than training frames are to
+  each other) is a **flag for review, never a reject**. A pose-conditioned
+  generation reproduces training poses by design. The close pairs point the leak
+  and identity checks at the frames worth comparing.
+
+See proof's [README](https://github.com/smk762/argus-proof/blob/dev/README.md#ci-acceptance-gate).
+
+### Captions that agree with the pose
+
+With `LENS_POSE_URL` set, lens's reconcile step checks posture words against
+puppet's measured stance. A word the measurement contradicts is corrected (when
+the tags agree with the measurement) or dropped: "a woman sitting on a bench"
+becomes "a woman on a bench" when she was measured standing. A pose word is never
+added. With nobody or more than one person in frame, or an `unknown` stance,
+puppet abstains and the caption stays as written. See lens's
+[reconciliation section](https://github.com/smk762/argus-lens/blob/dev/README.md#reconciliation-colourposeheadcounttext-fixes).
+
+### Control images and the pose library
+
+`argus-puppet render` (or `POST /render`) draws a pose as an OpenPose-style
+skeleton PNG at the generation size, for a pose ControlNet in your ComfyUI
+workflow. A pose library is built from a folder of images you're entitled to use,
+deduplicated and clustered, and `library sample` picks a batch of mutually
+distant poses, so a generation run covers several poses rather than one. See
+puppet's [conditioning page](/packages/puppet/conditioning). Darkroom and mint
+don't take a pose input yet.
+
+`library build --age-check` sends each candidate image to curator's
+`POST /faces?body=true` (`ARGUS_PUPPET_AGE_URL`) and keeps it only when **every**
+face and body reads 18 or over. It fails closed: an image curator can't vouch
+for, or one it can't reach curator about, is left out, and if nothing could be
+checked no library is written. Without the flag and the URL nothing is sent. Use
+it whenever the sources are real photographs
+([the age fail-safe](/packages/puppet/index#privacy-and-the-age-fail-safe)).
+
+## Running it
+
+Puppet serves HTTP on port **8220**, from two images:
+`ghcr.io/smk762/argus-puppet:latest` (ONNX Runtime on the CPU) and `:latest-gpu`
+(CUDA). The images ship no weights. Fetch the four pinned models (about 310 MB,
+each checked against its SHA-256) into the model volume once:
+
+```bash
+docker volume create puppet-models
+docker run --rm -v puppet-models:/models ghcr.io/smk762/argus-puppet:latest argus-puppet models fetch
+docker run -d --name argus-puppet -p 127.0.0.1:8220:8220 -v puppet-models:/models ghcr.io/smk762/argus-puppet:latest
+```
+
+There is no authentication: keep the port on loopback or behind a proxy you
+control. Point the callers at it:
+
+| Package | Variable | What it turns on |
+|---|---|---|
+| argus-curator | `ARGUS_CURATOR_PUPPET_URL` | The body-pose scan stage (`--no-body-pose` opts a scan out) |
+| argus-proof | `PROOF_PUPPET_URL` | The eval report's pose block; the gate is a separate opt-in |
+| argus-lens | `LENS_POSE_URL` | The reconcile pose verifier |
+| argus-puppet | `ARGUS_PUPPET_AGE_URL` | Curator's URL, for `library build --age-check` only |
+
+Use `http://<GPU_HOST>:8220` (or the compose service name) when puppet runs on
+another machine. Studio's compose doesn't run puppet yet. Images, every
+`ARGUS_PUPPET_*` variable, the data root for folder scans and GPU sharing are in
+puppet's [deploy page](/packages/puppet/deploy).

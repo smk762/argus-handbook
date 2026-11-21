@@ -65,6 +65,12 @@ export const SERVICES: Service[] = [
         docs: gh("argus-forge", "README.md", "training-image--train"),
       },
       {
+        pkg: "argus-puppet",
+        role: "The `latest-gpu` image (ONNX Runtime CUDA). It takes its own lease (kind `pose`); the CPU image needs no GPU.",
+        config: ["ARGUS_PUPPET_DEVICE", "ARGUS_PUPPET_GPU_MEM_LIMIT_MB", "[gpu]"],
+        docs: gh("argus-puppet", "docs/deploy.md", "gpu-sharing-argus-iris"),
+      },
+      {
         pkg: "argus-darkroom, argus-atlas",
         role: "Nothing in the package itself: they render through [ComfyUI](/setup/services/comfyui), which needs the GPU.",
         config: [],
@@ -334,6 +340,12 @@ export const SERVICES: Service[] = [
         role: "Age check through curator's `POST /faces?body=true`, or in process with the `[age]` extra.",
         config: ["ARGUS_DARKROOM_AGE_URL", "ARGUS_DARKROOM_MINOR_EXPOSED", "[age]"],
         docs: gh("argus-darkroom", "README.md", "age-check-optional"),
+      },
+      {
+        pkg: "argus-puppet",
+        role: "The pose library's age check (`library build --age-check`) through curator's `POST /faces?body=true`. Fails closed.",
+        config: ["ARGUS_PUPPET_AGE_URL", "--age-check"],
+        docs: gh("argus-puppet", "docs/index.md", "privacy-and-the-age-fail-safe"),
       },
     ],
     guides: [

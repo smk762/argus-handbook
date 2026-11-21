@@ -27,7 +27,7 @@ own Python package with its own HTTP service, and
   ([Proof](https://studio.dragonhound.dev/proof/)).
 - [**argus-puppet**](/packages/puppet) measures body pose: how varied a set's poses are, whether
   one pose dominates, and skeleton control images for a pose ControlNet. It has no
-  Studio stage of its own; curator, proof and lens call it.
+  Studio stage of its own; curator, proof and lens call it ([Body pose](/setup/body-pose)).
 - [**argus-atlas**](/packages/atlas) bakes a georeferenced fantasy map from real terrain
   ([Atlas](https://studio.dragonhound.dev/atlas/)).
 - [**argus-darkroom**](/packages/darkroom) generates images with a guard before and after, and a
@@ -61,6 +61,8 @@ SingGuard, Hugging Face models and a GPU host.
   vars, the minimal setup and the official guides.
 - [Moderation](/setup/moderation): how the suite judges images and prompts,
   across curator, darkroom, cortex and proof.
+- [Body pose](/setup/body-pose): where argus-puppet's pose measurements feed
+  curator, Studio, Cull, forge, proof and lens, and their limits.
 - [What to run for which UI](/setup/which-services): what each demo UI needs
   live, and the no-GPU command.
 

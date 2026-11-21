@@ -31,6 +31,7 @@ export const DOCS_NAV: DocsNavSection[] = [
     items: [
       { href: "/setup", label: "Overview" },
       { href: "/setup/moderation", label: "Moderation" },
+      { href: "/setup/body-pose", label: "Body pose" },
       { href: "/setup/which-services", label: "What to run for which UI" },
       ...SERVICES.map((s) => ({ href: serviceHref(s.id), label: s.title })),
     ],

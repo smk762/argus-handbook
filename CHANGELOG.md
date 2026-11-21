@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - argus-puppet under `/packages/puppet/`: its README and `docs/*.md` (overview, metrics, pose vector, conditioning, models, deploy, server, CLI), with a home-page entry.
+- Body pose (`/setup/body-pose`): where argus-puppet sits between curator, Studio and Cull, forge, proof and lens, how to run it, and its limits (synthetic calibration, unusable crops, the COCO-WholeBody terms, GPU lease contention, the pose library's age check). The GPU host and MiVOLO service pages list puppet, and Moderation, What to run for which UI, the setup index and the home page link it.
 - argus-scout under `/packages/scout/`: its README and `docs/*.md` (config, sources, signals, narrative, channels, API, operations, CLI), with a home-page entry.
 - Immich: a "Remote machine learning on the GPU host" section (#15). It covers a minimal compose for the CUDA `immich-machine-learning` server, `MACHINE_LEARNING_MODEL_TTL`, the ML URL list with a CPU fallback (and what fails without one), and the Rich-logging startup hang with its `log_conf.json` workaround, which applies only up to v3.3.x. The GPU host's "Sharing one GPU" now covers immich-ml, which doesn't take part in the lease (iris support: smk762/argus-iris#29).
 
