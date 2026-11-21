@@ -510,6 +510,72 @@
         "src/content/packages/mask/spec.md": "8bd08276bd452fb54685978b7662af3084167f90fea15e444e955db3e66d03bf"
       }
     },
+    "scout": {
+      "package": "argus-scout",
+      "repo": "smk762/argus-scout",
+      "branch": "dev",
+      "commit": "69730fbd9bbb65c794c61428127c99098435725a",
+      "version": "0.1.0",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-scout"
+        },
+        {
+          "file": "docs/config.md",
+          "slug": "config",
+          "title": "Config reference"
+        },
+        {
+          "file": "docs/sources.md",
+          "slug": "sources",
+          "title": "Status sources"
+        },
+        {
+          "file": "docs/signals.md",
+          "slug": "signals",
+          "title": "Signals and recommendations"
+        },
+        {
+          "file": "docs/narrative.md",
+          "slug": "narrative",
+          "title": "Narrative: briefings and status updates"
+        },
+        {
+          "file": "docs/channels.md",
+          "slug": "channels",
+          "title": "Delivery channels"
+        },
+        {
+          "file": "docs/api.md",
+          "slug": "api",
+          "title": "HTTP API"
+        },
+        {
+          "file": "docs/operations.md",
+          "slug": "operations",
+          "title": "Operations"
+        },
+        {
+          "file": "docs/cli.md",
+          "slug": "cli",
+          "title": "CLI reference"
+        }
+      ],
+      "held": [],
+      "files": {
+        "src/content/packages/scout/docs/api.md": "652cc5458b4b9f0246db51363576b3707f9f1678693137bac092a1bc631867f6",
+        "src/content/packages/scout/docs/channels.md": "c3e21e29d2b509ed5bebede4ee5bbc82bee9bf6607f1042867b3650e7a760d09",
+        "src/content/packages/scout/docs/cli.md": "7903f74d7db091fc0bb5e271a9c313f368a211eed881705ff11241826deaa6f3",
+        "src/content/packages/scout/docs/config.md": "71809489f55f4e703f22b89f924243420b212cb98dfbedcf648ff94cd81d6ddf",
+        "src/content/packages/scout/docs/narrative.md": "3596edd975e60c5afc3bb8690aa22e64cb1407cca0e257e7a9542594187adb1d",
+        "src/content/packages/scout/docs/operations.md": "6d492a008b421f17c563ac295a1063d18b937fc07dc776b678f35366577e2c99",
+        "src/content/packages/scout/docs/signals.md": "15feea897bd583257449ba1b116036aecaa9e1feb5aed3ac2685833eaca30fa6",
+        "src/content/packages/scout/docs/sources.md": "bf1bd94b41824acededcf4cf2558728ae0a7e97510eba8d3ee9afa3965bc590d",
+        "src/content/packages/scout/README.md": "23d1abd7325fd58577c9ec50b6cd02bc0d55610effd51bc3a625159efba34598"
+      }
+    },
     "cortex": {
       "package": "argus-cortex",
       "repo": "smk762/argus-cortex",
