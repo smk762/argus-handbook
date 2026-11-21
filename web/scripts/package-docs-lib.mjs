@@ -56,6 +56,24 @@ export const PACKAGES = [
   { short: "forge", package: "argus-forge", repo: "smk762/argus-forge", docs: ["README.md"] },
   { short: "proof", package: "argus-proof", repo: "smk762/argus-proof", docs: ["README.md"] },
   {
+    short: "puppet",
+    package: "argus-puppet",
+    repo: "smk762/argus-puppet",
+    docs: [
+      "README.md",
+      "docs/index.md",
+      "docs/metrics.md",
+      "docs/pose-vector.md",
+      "docs/conditioning.md",
+      "docs/models.md",
+      "docs/deploy.md",
+      "docs/server.md",
+      "docs/cli.md",
+    ],
+    // docs/index.md is the overview beside the README; the generated CLI reference is titled with the bare command name.
+    titles: { "docs/index.md": "Overview", "docs/cli.md": "CLI reference" },
+  },
+  {
     short: "atlas",
     package: "argus-atlas",
     repo: "smk762/argus-atlas",

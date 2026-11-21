@@ -211,6 +211,72 @@
         "src/content/packages/proof/README.md": "37a6577216b85937cd172202cb6188f29561e80bdc4a1b2cf57637c8e9eb4597"
       }
     },
+    "puppet": {
+      "package": "argus-puppet",
+      "repo": "smk762/argus-puppet",
+      "branch": "dev",
+      "commit": "6f6fea309c50975d5c3c7f294f5e439f645cde05",
+      "version": "0.3.0",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-puppet"
+        },
+        {
+          "file": "docs/index.md",
+          "slug": "index",
+          "title": "Overview"
+        },
+        {
+          "file": "docs/metrics.md",
+          "slug": "metrics",
+          "title": "Pose metrics: set stats, labels and set-vs-set comparison"
+        },
+        {
+          "file": "docs/pose-vector.md",
+          "slug": "pose-vector",
+          "title": "The pose vector and pose distance"
+        },
+        {
+          "file": "docs/conditioning.md",
+          "slug": "conditioning",
+          "title": "Pose conditioning"
+        },
+        {
+          "file": "docs/models.md",
+          "slug": "models",
+          "title": "Models and licences"
+        },
+        {
+          "file": "docs/deploy.md",
+          "slug": "deploy",
+          "title": "Deploying argus-puppet"
+        },
+        {
+          "file": "docs/server.md",
+          "slug": "server",
+          "title": "The HTTP service"
+        },
+        {
+          "file": "docs/cli.md",
+          "slug": "cli",
+          "title": "CLI reference"
+        }
+      ],
+      "held": [],
+      "files": {
+        "src/content/packages/puppet/docs/cli.md": "6fd80f9e64e6e842439129357d06960f1408e89c8a65b73033e3ce2674ed68d8",
+        "src/content/packages/puppet/docs/conditioning.md": "667ea5078c6a1ebb948be15b77632c7ee3bef7914baa2700555b5ab39eac1c6e",
+        "src/content/packages/puppet/docs/deploy.md": "e841a549e01016396851c3409f0824e0a3de68fb06d8610570a7b22e14e6485c",
+        "src/content/packages/puppet/docs/index.md": "66c1afab5f2c41c9d4505e61299b57cd095923fa25d5deccdb679b2a8265c600",
+        "src/content/packages/puppet/docs/metrics.md": "db85334271259f23eee9317ea4f0e983e03c02aacb273b3175281e1baee0821e",
+        "src/content/packages/puppet/docs/models.md": "889ca89e057431ca91df98359bb4cc1bb7ebc8e64d111db352257f4977962f49",
+        "src/content/packages/puppet/docs/pose-vector.md": "c67cedc884dad1814740bd7912d2eb6180fb05225fa2eea12b42b63bf1fad48b",
+        "src/content/packages/puppet/docs/server.md": "83de1488ad8d529d263b7362b4834a76d5ed5b9f551bd81878ed05340c98397f",
+        "src/content/packages/puppet/README.md": "350850e5d19881424434545d1fdcc00e0b168285a6ed60a89eb2f37800b473f2"
+      }
+    },
     "atlas": {
       "package": "argus-atlas",
       "repo": "smk762/argus-atlas",
