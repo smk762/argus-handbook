@@ -10,7 +10,9 @@ and shown, never parsed: a report that says "approve X" approves nothing.
 | `evening` | the same | what's still open, what was approved, what to watch overnight. Under 150 words. |
 | `status` | by the status cycle, when open items pass the heartbeat policy's report rules and at least one is news: not yet announced in its current form (new, escalated or changed, or cleared and back), or its re-announce interval passed; or at a briefing slot | only the reportable items, most severe first, and rejections. Under 80 words. |
 
-Rest hours (heartbeat policy) skip the status cycle entirely; briefings still run. Write one now:
+Rest hours (heartbeat policy) skip the status cycle entirely; briefings still run. Write one now, from the CLI or
+over HTTP (`POST /api/reports`, which also delivers it unless told not to; see
+[api.md](api.md#on-request-reports)):
 
 ```bash
 argus-scout brief --config scout.yaml --kind morning            # asks the model, stores and prints it
@@ -18,6 +20,17 @@ argus-scout brief --config scout.yaml --kind status --dry-run   # stores nothing
 argus-scout brief --config scout.yaml --no-llm                  # the template only
 argus-scout deliver --config scout.yaml --latest                # send the newest report to the channels
 ```
+
+```bash
+curl -s -X POST localhost:8400/api/reports -H "Authorization: Bearer $SCOUT_API_TOKEN" \
+  -H 'Content-Type: application/json' -d '{"kind": "morning"}'     # store, deliver and return it
+```
+
+A scheduled briefing and an on-request one are written by the same code (`Briefings` in `cycles.py`), so they get
+the same facts, persona, caps, GPU lease and fallback, and `meta.trigger` says which it was (`scheduled`, `request`
+or `cli`). Only one report of a kind is written at a time: a request that arrives while one is being written gets a
+409, and a scheduled job that comes due waits its turn. Both are held to the daily caps, even though other work
+done for an HTTP request may go over them.
 
 ## What the model sees
 
@@ -32,7 +45,7 @@ many were left out per section, so a cut always drops the least severe facts.
 
 Every stored report's `meta` records how it was written: `path` (`llm` or `template`), `fallback_reason`, the
 model, the persona, token counts, and the ids of the facts it used and how many it left out. See it with
-`GET /api/reports/latest`.
+`GET /api/reports/latest` or `GET /api/reports/{id}`.
 
 ## Backends
 
@@ -136,7 +149,20 @@ report's `meta.persona_error` says why.
 things to ignore. They're folded into morning and evening briefings, after everything else. Scout reads them and
 never edits them; each is read up to 16 KiB, at most 50 files, and about 2000 characters in total reach a prompt.
 
+**What counts as a note.** Every `*.md` file in the directory, except:
+
+- `README.md`, in any case (`readme.md`, `Readme.MD`): it is for people browsing the directory, not for the model.
+- Any name starting with `_` (`_draft.md`, `_template.md`): set a note aside by renaming it, without deleting it.
+- `scout-recent-rejections.md`, scout's own file (below).
+
+`argus-scout check config` reports how many notes it found.
+
 Scout writes one file there, `scout-recent-rejections.md`, rewritten whenever it writes a report: the recent
 rejections and the reasons given, so you can see what it has been told not to raise again. Every path stays under
 the directory: absolute names, `..` and symlinks out are refused, and scout's own file is never written through a
 symlink.
+
+**A read-only directory.** Set `memory.write_rejections: false` and scout writes nothing there. Reports still quote
+the recent rejections and their reasons: those come from the store, not from this file. If the directory can't be
+written anyway (checked at startup, or the first write is refused), scout logs `memory.not_writable` once and stops
+trying until it restarts.
