@@ -5,8 +5,8 @@
       "package": "argus-lens",
       "repo": "smk762/argus-lens",
       "branch": "dev",
-      "commit": "61d8c16a6a4892f9c2cd3410160fd15016838997",
-      "version": "0.14.1.dev9+g61d8c16",
+      "commit": "73e96b3b3e61b1ce1a100f474cf93f77fe7ec64d",
+      "version": "0.15.1.dev4+g73e96b3",
       "pages": [
         {
           "file": "README.md",
@@ -27,16 +27,16 @@
       "held": [],
       "files": {
         "src/content/packages/lens/docs/caption-result.md": "5a413cd0dcf7c7d712b7fb37db0be2a0b9203458110d670374c6fc57907f95f0",
-        "src/content/packages/lens/docs/cli.md": "e2f7c1794b7ad5750aeaa1c582601ea96ec47c1da286997c99f489180757d3c1",
-        "src/content/packages/lens/README.md": "017d17191ae1dcc1c441d96434b6eb98a96c18610ea3ea758d2788931931022b"
+        "src/content/packages/lens/docs/cli.md": "c2759d7a447882247fb6e9075acbe17bf5065e3dd90b16ab725cf5c59bf10c24",
+        "src/content/packages/lens/README.md": "abafd760505f35d0746b24d5eb6cc297f5f2c5da97402d3cfed910efe457905f"
       }
     },
     "curator": {
       "package": "argus-curator",
       "repo": "smk762/argus-curator",
       "branch": "dev",
-      "commit": "b94d89b0c7078602ced43b2bfe6592e299dfe93a",
-      "version": "0.18.0",
+      "commit": "1fc0047dadbf364ce65bc64d8775b27309cfbba5",
+      "version": "0.19.1.dev12+g1fc0047",
       "pages": [
         {
           "file": "README.md",
@@ -131,32 +131,32 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/curator/docs/cli.md": "24df5818338aed94c505fec93504bd287b4357a6684be6c2eac74210e31e927c",
+        "src/content/packages/curator/docs/cli.md": "d9230e0fce7c7c4e0d1322aef2a95e4b0b1760fdbd7b6209bf190024d604739b",
         "src/content/packages/curator/docs/crops.md": "b836606ee147f8595946d7c8d069ae2abce2d3321870634016167f2930196003",
         "src/content/packages/curator/docs/face-attributes.md": "ea77a57dd3c166862273fc729284215edac0aa355cda2fd384be26e2e7f2f3bc",
-        "src/content/packages/curator/docs/face-sources.md": "55a97881a93f9613a7694621eba705a9d1df3cfe09fdb6fc2d70043880b3ce79",
+        "src/content/packages/curator/docs/face-sources.md": "315f8cf457a285faccdf8c4b9d0a535e0c1611cbcf39c961e816e99f7f9b5084",
         "src/content/packages/curator/docs/garments.md": "28329b9da6ebe1815ee87b14b1d7dfd984a480298dcfe02c7969f19be9763aa0",
-        "src/content/packages/curator/docs/gpu.md": "3d085080b76ead65a26786e45f0e7faa1e718de60bb82f0a01b6f45a98c9f5d9",
-        "src/content/packages/curator/docs/http-api.md": "2717a2c800b96d1cd423f53bd9be98f0b461dcbb2ed34228386b109d5d148b0b",
-        "src/content/packages/curator/docs/manifest.md": "3aca9ed3b091f16385621dc1ec695b89a10711b1558ddc8f0f9558dfbcf941d4",
+        "src/content/packages/curator/docs/gpu.md": "0f2b07ab8ad4236e77f04d0816d7ccb8b957b72534d3f5c4765e3c0148dd2a92",
+        "src/content/packages/curator/docs/http-api.md": "89a6d01bfae38779e916d9bd8a3973f8b12dbeb4349890288a695e30c598483c",
+        "src/content/packages/curator/docs/manifest.md": "d562fb4de5b85702651ea67f585f3b9eab926c7aa2f398313f89fe2e08cfd39d",
         "src/content/packages/curator/docs/moderation.md": "91ff5feef378bceaf8dd979c176fca46452327aacd39e2795e422076aadf24eb",
         "src/content/packages/curator/docs/nudity.md": "c50618ebecf658323e479bd05e24d679d48788bdf8764e1c2ba5c8ee2d88ace4",
-        "src/content/packages/curator/docs/policy-check.md": "3dfb6e659611ca9fab85819c81c83944c8fa9a25dc92b45f3c6e9eccbe445ca8",
-        "src/content/packages/curator/docs/prefilter.md": "363fd7c0173b26a88f3f33724380aa280e53f310a89e7698f2fe17aa627c427c",
+        "src/content/packages/curator/docs/policy-check.md": "35b8f4d60cad1658fdd26351a1d86ebdd74e5427f5691c9042a3e64fd594bbbf",
+        "src/content/packages/curator/docs/prefilter.md": "a6e68ba56d96037d00fd8342986d77b969d2f83b5a0dd65efd99d4cb77e91aa3",
         "src/content/packages/curator/docs/scene-tags.md": "8fb733d4c428762f3fa0711361cbad011a1171507faf7632f1cc2b674eb384fe",
-        "src/content/packages/curator/docs/scoring.md": "91b52750b1deaa28278ec2e5d4d6e7381bd8c26c30ec53c0d945486c148cdac7",
-        "src/content/packages/curator/docs/sidecars.md": "724b0b530604694f76991e740b591c9a304580df3c660362af9f19c0cce7b0ac",
-        "src/content/packages/curator/docs/synthetic-face-sets.md": "2ffa3df5240c6ec35068e65a21ca6c9dd60b01ada362de4280e86432f8a05d6a",
+        "src/content/packages/curator/docs/scoring.md": "7bb8185d77128bbef826f1de4274e726b657b9192b575cf646ab9f6196e0d716",
+        "src/content/packages/curator/docs/sidecars.md": "8409eca19e63333f822b378150e3d7f66c9b1c43e1c23c9d7b23aac3fd496d12",
+        "src/content/packages/curator/docs/synthetic-face-sets.md": "e10339672e9e2aba03e0fe977196826371edb2e422d029059aec3eb3bc8d902f",
         "src/content/packages/curator/docs/xmp.md": "943cb59854be467a3497644933ae43a3a68c50b432f226b9439d676725a8330d",
-        "src/content/packages/curator/README.md": "f1c2b965cb581c139cf314c30e410b31b7ad01585dbefdacaed2f01e64f8c8ef"
+        "src/content/packages/curator/README.md": "2381e503eae28aa9e8381048f2c7ec10927523c9133a94e458d68e2d69441c38"
       }
     },
     "quarry": {
       "package": "argus-quarry",
       "repo": "smk762/argus-quarry",
       "branch": "dev",
-      "commit": "43a4e6c166e5a340f6953dc065f96d3d3cd8c3ab",
-      "version": "0.5.0",
+      "commit": "99b94907e75c425f6bd926e81ea66cd524d84bbb",
+      "version": "0.5.1.dev2+g99b9490",
       "pages": [
         {
           "file": "README.md",
@@ -197,8 +197,8 @@
       "package": "argus-proof",
       "repo": "smk762/argus-proof",
       "branch": "dev",
-      "commit": "3773d89214ee750befb24c5b37d0997c04859cd4",
-      "version": "0.5.2",
+      "commit": "b8b5c0df7cbe17505d77e0434786b453ec7c8c12",
+      "version": "0.5.3.dev10+gb8b5c0d",
       "pages": [
         {
           "file": "README.md",
@@ -208,7 +208,7 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/proof/README.md": "37a6577216b85937cd172202cb6188f29561e80bdc4a1b2cf57637c8e9eb4597"
+        "src/content/packages/proof/README.md": "2d29d809b46d23cb3239463eaff7b9c93bcdabba3b1bf7d85f2d0819eaf80b09"
       }
     },
     "atlas": {
@@ -307,8 +307,8 @@
       "package": "argus-mint",
       "repo": "smk762/argus-mint",
       "branch": "dev",
-      "commit": "72b4f58d60545d289058bc612233e3c43898aa86",
-      "version": "0.3.1.dev2+g72b4f58",
+      "commit": "b0c308e904c6d20c211905021e82fdcccbcd7396",
+      "version": "0.3.1.dev4+gb0c308e",
       "pages": [
         {
           "file": "README.md",
@@ -446,8 +446,8 @@
       "package": "argus-mask",
       "repo": "smk762/argus-mask",
       "branch": "dev",
-      "commit": "023d6e8c17ba8ad31cdc595ec38906ad779933f7",
-      "version": "0.3.0",
+      "commit": "b66afdbbfa2dc55fc2510e44939164e9679c9766",
+      "version": "0.3.1.dev6+gb66afdb",
       "pages": [
         {
           "file": "README.md",
@@ -514,8 +514,8 @@
       "package": "argus-scout",
       "repo": "smk762/argus-scout",
       "branch": "dev",
-      "commit": "69730fbd9bbb65c794c61428127c99098435725a",
-      "version": "0.1.0",
+      "commit": "becb9cd95c1fad0d990e6a9e0676ecf42d9cc73d",
+      "version": "0.1.1",
       "pages": [
         {
           "file": "README.md",
@@ -565,23 +565,23 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/scout/docs/api.md": "652cc5458b4b9f0246db51363576b3707f9f1678693137bac092a1bc631867f6",
-        "src/content/packages/scout/docs/channels.md": "c3e21e29d2b509ed5bebede4ee5bbc82bee9bf6607f1042867b3650e7a760d09",
+        "src/content/packages/scout/docs/api.md": "fc6ce8b7a8f649ffd78f7d4f6fa5e54f18749f33ac322343f2a3da2bfc6b98b8",
+        "src/content/packages/scout/docs/channels.md": "20cb40c05bf8800aa65b106a5aa61110490b88e145d8a9d94f23bf2c67081ae7",
         "src/content/packages/scout/docs/cli.md": "7903f74d7db091fc0bb5e271a9c313f368a211eed881705ff11241826deaa6f3",
-        "src/content/packages/scout/docs/config.md": "71809489f55f4e703f22b89f924243420b212cb98dfbedcf648ff94cd81d6ddf",
-        "src/content/packages/scout/docs/narrative.md": "3596edd975e60c5afc3bb8690aa22e64cb1407cca0e257e7a9542594187adb1d",
-        "src/content/packages/scout/docs/operations.md": "6d492a008b421f17c563ac295a1063d18b937fc07dc776b678f35366577e2c99",
-        "src/content/packages/scout/docs/signals.md": "15feea897bd583257449ba1b116036aecaa9e1feb5aed3ac2685833eaca30fa6",
-        "src/content/packages/scout/docs/sources.md": "bf1bd94b41824acededcf4cf2558728ae0a7e97510eba8d3ee9afa3965bc590d",
-        "src/content/packages/scout/README.md": "23d1abd7325fd58577c9ec50b6cd02bc0d55610effd51bc3a625159efba34598"
+        "src/content/packages/scout/docs/config.md": "1f75b2e85aada1f57de30a94a2453a7235104ab3f7cae67de27575e97bd2b632",
+        "src/content/packages/scout/docs/narrative.md": "8d5c05f644ec86120918bfee1863de0cae74556d2804b8d465856767f7ca416c",
+        "src/content/packages/scout/docs/operations.md": "a7fe6479be54023c6198249288df8417d903d2754053e8f30587d073efd88e87",
+        "src/content/packages/scout/docs/signals.md": "10e4fed0dbbcfb1187f3aa8535a96c927715c6d87a6d96238a86558d2fcea95f",
+        "src/content/packages/scout/docs/sources.md": "24dcb5376aee5e0a963ed41b1a314a81b658596915e4284fb518e6781b57fbb0",
+        "src/content/packages/scout/README.md": "01eaa51f2b49f1d3af4d9d8a9468daff56f66a2c3b8281c014699c2860858567"
       }
     },
     "cortex": {
       "package": "argus-cortex",
       "repo": "smk762/argus-cortex",
       "branch": "dev",
-      "commit": "281bfe97e832fdcf592279fd2b0f0825d83f4b7a",
-      "version": "0.10.1.dev54+g281bfe9",
+      "commit": "14105f83f88339fe20225140945cd46bf536e804",
+      "version": "0.13.1.dev13+g14105f8",
       "pages": [
         {
           "file": "README.md",
@@ -591,7 +591,7 @@
       ],
       "held": [],
       "files": {
-        "src/content/packages/cortex/README.md": "8d7b8e46110e10813626601f26dc7863ac00a4a726bb79d1b7ab776a8e10eb40"
+        "src/content/packages/cortex/README.md": "b3c26c7f3b1a9b7e6b23fb34c12c249e5d3f6d7cc4de77d0a19d19abf9fcf403"
       }
     }
   }

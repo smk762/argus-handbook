@@ -315,9 +315,10 @@ skips it when the extra is absent). Shipped:
 - **likeness** — `LikenessScorer` (DINOv2 whole-image embedding cosine vs the same held-out reference set, #103). The identity score for subjects ArcFace can't see: helmeted, masked, chrome-skinned or non-human characters, and scenes or sets, where `identity` reads `0.0` (no face). It runs on every target category whenever there are references (`None` without), and the held-out refusal above covers it, since both scorers read the one reference set. DINOv2 rather than CLIP image embeddings: CLIP is trained to match captions, so two different chrome robots embed close together because both are "a chrome robot"; DINOv2 is self-supervised on images and keeps instance-level appearance. It loads through `transformers` in the `[score]` extra, which CLIPScore and pyiqa already bring. `PROOF_LIKENESS_MODEL` picks the checkpoint (default `facebook/dinov2-base`; a Hub id or a local `save_pretrained` dir for an offline host). Once loaded, its `model.safetensors` is pinned by SHA256 in the report's scorer provenance (`ScorerProvenance.model_file`), as a `RunManifest` pins the generation models. The raw cosine is clamped, not calibrated: unrelated images still sit around 0.1–0.4 (and simple synthetic shapes higher), so take `--min-likeness` from a real run. `likeness` has weight **0** in the default composite, because it is uncalibrated and its threshold comes from the mint pilot run: it acts only through `--min-likeness`, a `likeness` hard gate (reject code `identity_mismatch`) or an explicit `GateConfig.weights["likeness"]`.
 - **quality / adherence** — `clip_score_scorer()` (CLIPScore), `pyiqa_scorer()` (CLIP-IQA), `image_reward_scorer()` (ImageReward), each normalising its raw score to `[0,1]`
 - **safety** — `SafetyScorer` (NudeNet ensemble, `1 - unsafe`); set a `safety` hard gate to auto-fail unsafe images. `safety_tail_aggregate()` surfaces the any-hit/min/percentile tail. NudeNet runs as a **server over HTTP** (`PROOF_NUDENET_URL`, via argus-cortex's `NudeNetClient`), never in-process (it is AGPL-3.0); without a URL the scorer is skipped. Point it at the suite's shared **640m** server, argus-retina's `ghcr.io/smk762/argus-retina-nudenet` (`http://<GPU_HOST>:8130` on the LAN); the upstream `notai-tech/nudenet` image is **320n**. The two score the same image differently, so the report records which one ran (the safety scorer's `model`: `nudenet-640m`, `nudenet-320n`, or `nudenet` when the server doesn't say, as the upstream image doesn't), and the cross-run store keeps it as a sliceable `safety_detector` column. The cutoff is tuned for 640m: an exposed score of **at least 0.2** is unsafe, so `unsafe_safety_floor` defaults to 0.8 and an image at or below it counts (the acceptance gate's `max_unsafe_rate`, `recommend`, and `safety_tail_aggregate()`). That is NudeNet's reporting floor, so any exposed detection counts, as in curator and cull. It is deliberately conservative and may flag the odd false positive; raise the floor's exposed score if that becomes a problem. "Unsafe" is the suite's exposed-nudity set (exposed buttocks, breasts, genitalia, anus), the same as curator's
+- **pose (run-level)** — `PoseScorer` (#122): pose diversity of the whole run, and pose-copying evidence against the training frames, from **argus-puppet over HTTP** (`PROOF_PUPPET_URL`, timeout `PROOF_PUPPET_TIMEOUT`). Phash diversity only catches near-identical images; this catches a concept LoRA that renders the same jump shot with a different person and background every time. Proof never imports argus-puppet: it posts each output to puppet's `POST /pose`, then `POST /stats` over the results (each image's primary person, the only one puppet's metrics read), and fills the top-level `EvalReport.pose`: `count`, `posed`, `usable`, `comparable_share`, `diversity`, `largest_cluster_share`, `cluster_count`, the largest cluster's medoid image(s), label coverage. When the run's training export is readable on this host (the same rule as the held-out check), it poses the training frames too (sampled evenly to at most 1000; not cached between runs) and calls `POST /compare`, which adds `pose.comparison`: `close_share` against the training set's own leave-one-out `baseline_close_share`, their difference `close_excess`, nearest-neighbour distance quantiles on both sides, the coverage divergence, the training set's own diversity, and up to 50 close pairs (output `image_id` → training frame, relative to the export, with its SHA256 and the distance). Provenance records puppet's version and models, the metric parameters, and anything that was not checked and why. Puppet takes its own GPU lease (proof takes none for it) and gets proof's priority as `X-Argus-Priority`. **Degrading:** without `PROOF_PUPPET_URL` there is no pose block, and `score` warns (`--require-scorers pose` refuses). Puppet unreachable, erroring, still busy after a few `Retry-After`-honouring retries on 503, or answering an unknown wire major never fails the run: the pose block says what happened and every unmeasured number is `None`, never `0.0`. Images puppet couldn't pose make the block `partial`, which `usable / count` shows. A close pose match means "the same pose", not "a copied frame": the close pairs are pointers for an image-level check
 
 The default scorer set used by `argus-proof run` / `score` and the server
-(`evaluate.default_scorers()`, plus phash dedup/diversity) is identity, likeness, CLIPScore,
+(`evaluate.default_scorers()`, plus phash dedup/diversity and the run-level pose scorer) is identity, likeness, CLIPScore,
 CLIP-IQA and safety — it does **not** include ImageReward, so the `preference`
 metric stays empty unless you pass `image_reward_scorer()` via the library API (in a `[preference]` environment).
 `GET /scorers` reports which of the default set this install can actually run.
@@ -444,6 +445,30 @@ argus-proof gate eval_report.json \
 floors the mean DINOv2 likeness (any subject, `AcceptanceThresholds.min_likeness_mean`).
 Use whichever measures the subject, or both.
 
+**Pose collapse** (`--min-pose-diversity`, `AcceptanceThresholds.min_pose_diversity`, #122) is **off by default**:
+its thresholds (argus-puppet's suggested 0.3 diversity floor and 0.75 cluster share) are calibrated on synthetic
+stick figures only, so confirm them on a real run before relying on them, as `--min-likeness` was. When on, it reads
+the report's pose block (see Scoring):
+
+```bash
+argus-proof gate eval_report.json --min-pose-diversity 0.3 --max-pose-cluster-share 0.75
+# [PASS] pose_measurable: 38/40 usable poses, comparable share 0.97
+# [FAIL] pose_diversity (pose_collapse): pose diversity 0.200 < 0.300; the outputs collapsed toward proof-1-4
+# [FAIL] pose_largest_cluster (pose_collapse): largest pose cluster 0.90 >= 0.75 (medoid proof-1-4)
+```
+
+1. **Measurable first.** No pose block, fewer than 10 usable poses, a usable share of the run under 0.5, or a
+   comparable share under 0.8 fails `pose_measurable`: an unmeasured run never passes the gate.
+2. **Collapse.** Diversity under the floor, or a largest pose cluster at or above `--max-pose-cluster-share`, fails
+   with the run-level code `pose_collapse` (`GateCheck.code`; run-level codes stay out of the per-image reject
+   reasons). The detail names the largest cluster's medoid, the pose the outputs collapsed onto.
+3. **Copying is a flag, never a reject.** With at least 20 eligible poses on each side and `close_excess >= 0.1`, a
+   passing `[FLAG] pose_copying (pose_copying)` check marks the run for review and counts the close pairs to compare
+   at image level. **Never gate on pose copying:** a pose-conditioned generator (a ControlNet, a pose library)
+   reproduces training poses by design and shows a high excess.
+
+The view encodes composition, not only articulation: one stance shot frontal and in profile counts as two poses.
+
 The pass-rate lower bound uses a Wilson score interval (`argus_proof.stats`, no
 scipy), so acceptance is statistically defensible at small N. A configured metric
 that wasn't measured fails its check rather than passing silently.
@@ -497,7 +522,10 @@ for rec in recommend(report, config=cfg, store=cross_run_store):   # store optio
 ```
 
 Safety first, then: low identity/likeness/aesthetic → **forge** (training), low adherence →
-**lens** + **grid**, low diversity → **grid**, borderline → **refine** (HITL). With a
+**lens** + **grid**, low diversity → **grid**, borderline → **refine** (HITL). A pose collapse
+(`--min-pose-diversity`, off by default like the gate's) goes to **curator** when the training poses are themselves
+narrow or the outputs match their mix (a low coverage divergence): rebalance the dataset's poses and retrain.
+Otherwise to the **grid**: generation narrowed it. With a
 cross-run store it also surfaces the best checkpoint / LoRA weight — but only when
 the evidence separates a clear winner (non-overlapping CIs), never on a tie.
 
