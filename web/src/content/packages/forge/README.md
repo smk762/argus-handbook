@@ -37,6 +37,12 @@ Along the way it:
   the ambiguous file uncaptioned instead of pairing it with the wrong caption,
 - emits one kohya subset per image directory (kohya's glob doesn't recurse — a structure-preserving export
   would otherwise train zero images),
+- **warns when one body pose dominates the set**: argus-curator's manifest 2.7 carries argus-puppet's
+  scan-level `pose_cluster` and `pose_labels` per row; when at least 10 of the images on disk have a cluster and
+  the most common one holds 75% or more of them, forge adds a warning naming the pose (e.g. "standing, arms
+  down, facing front") and how many images had no measured pose. Forge only counts what curator wrote: it
+  never measures poses or calls puppet, and the warning changes no repeats or configs. Older manifests: no
+  warning,
 - falls back gracefully to a bare folder of images with no manifest,
 - resolves the base checkpoint from the manifest's `target_profile.checkpoint` (or the SDXL base).
 
@@ -140,6 +146,25 @@ driven from its own UI) and streams the trainer's output. It exits with the
 trainer's own exit code, so it slots into scripts and CI; `--dry-run` prints the
 command without executing, and `--json` streams raw NDJSON `RunEvent`s.
 
+### Speech exports
+
+A curator speech export (argus-curator#187) holds WAV/FLAC clips, a `<stem>.txt` transcript beside each, and
+`speech_manifest.jsonl` (`SpeechManifestRow`, versioned by `speech_manifest_version`, independent of the image
+`manifest_version`). Forge reads 1.x and refuses any other major by name. `inspect` detects one by that file:
+
+```bash
+argus-forge inspect /data/voice-train --held-out /data/voice-held   # clips, hours, speakers, sources
+```
+
+Each clip is joined from curator's `exported_path` / `transcript_path` onto the export dir as forge sees it
+(never re-derived from `rel_path`); curator's `exported_abs_path` is carried, and refused if it names a
+different file forge can see. Rows with `split` `train` (or null) are trained on; `held_out` rows, and every row
+of a `--held-out` export, are reference clips only. A held-out `speaker_id`, `speaker_label` or `speaker_cluster`
+that also appears in training is refused. Speaker, accent, language and gender are carried per clip, and corpus,
+licence and provenance per source. An edited `.txt` wins over the manifest's `transcript`. The result,
+`argus_forge.speech.read_speech_export` -> `SpeechDataset`, is what a speech emitter (`SpeechEmitter`) takes.
+No speech emitter ships yet: XTTS-v2 is #56. The image trainers refuse a speech export.
+
 `--category` overrides the manifest's target category. The values are argus-cortex's shared taxonomy
 (`identity`, `wardrobe`, `pose_composition`, `setting`, `concept`), and each one sets its own step budget,
 network size and dataset-size guidance.
@@ -212,7 +237,7 @@ argus-forge serve --cors-any --cors-origin https://demo.example --no-run --expor
 | `GET /trainers` | supported trainers + emitted files |
 | `POST /inspect` | look at an export dir (counts, manifest, suggested params) |
 | `POST /config` | render configs; `dry_run: true` returns contents without writing |
-| `POST /run` | start the forged `train.sh` on a background job; returns the run's `RunState` (with `run_id`) — the run outlives the request |
+| `POST /run` | start the forged `train.sh` on a background job; returns the run's `RunState` (with `run_id`) — the run outlives the request; 409 while another run is active, and an `Idempotency-Key` header makes a retry safe (below) |
 | `GET /runs` | list tracked runs |
 | `GET /run/{id}` | a run's status (poll for the terminal `status` + `returncode` — the argus-proof join); a succeeded run's `lora` too |
 | `GET /run/{id}/lora` | a succeeded run's LoRA: `path`, `export_path` (relative to the export dir), `sha256`, `size_bytes`; 409 while it hasn't succeeded |
@@ -237,6 +262,59 @@ there as JSON when it starts and when it ends, and reloaded at startup, the newe
 The event log isn't saved: a restored run's stream replays its `start` and its terminal event. A run that
 was still `running` when forge went away comes back `failed`, with a message saying its outcome is unknown.
 Without a state directory, runs are kept in memory only.
+
+**Retrying `POST /run` is safe with an `Idempotency-Key`.** A dropped connection can leave a client unsure
+whether its run started, and a duplicate run holds the GPU for hours. Send a fresh random key (a UUID) per
+intended run in the `Idempotency-Key` header (1-200 printable ASCII characters) and retry with the same key:
+
+| Request | Response |
+| ------- | -------- |
+| no `Idempotency-Key` | a new run (202), or 409 `run_active` while another run is active (below) |
+| a key not seen before | 202, a new run, remembered under the key; or 409 `run_active` while another run is active, remembering nothing |
+| the same key and the same body | 202 with the run the key started, as it is now (running, succeeded, failed or cancelled), and `Idempotent-Replayed: true`; nothing new starts |
+| the same key, a different body | 409; nothing new starts |
+| the same key, but its run is no longer retained (past the newest 64 finished runs) | 409; nothing new starts |
+| a malformed key | 422 (the value is not echoed) |
+
+"The same body" compares the validated request (sorted keys), so whitespace and key order don't matter, but
+`dry_run`, `env` or a different `export_dir` do. A request refused with a 400 records nothing, so its retry is
+judged afresh. Keys are **global to the server**: forge has no user identity, so two clients that send the same
+key share it. They are kept beside the run records (`<state-dir>/idempotency/`, one JSON file per key holding
+the key's sha256, never the key, and written atomically) so a replay after a restart still finds its run;
+without a state directory they are in memory only. A key is remembered for
+`ARGUS_FORGE_IDEMPOTENCY_RETENTION_S` seconds (default 86400, 24 h), pruned lazily on the next keyed `POST /run`
+after that, and never while its run is still going. `Idempotent-Replayed` is exposed to browsers under CORS.
+
+**One run at a time.** While a run is **active**, another `POST /run` is refused with 409 and creates nothing,
+so two clients (two studio tabs, a script and a tab) cannot start two runs that then fight over the GPU. Active
+means not yet ended: status `running`, which covers a run still **queued** for its argus-iris `train` lease as
+well as one whose trainer is going (a queued run counts, or the broker's queue fills with forge's own runs).
+`succeeded`, `failed` and `cancelled` are terminal. The 409 body is a `RunActiveError`:
+
+```json
+{
+  "detail": "a run is already active (run 3f2a…, queued or running); wait for it to finish or cancel it",
+  "code": "run_active",
+  "active_run": {"run_id": "3f2a…", "status": "running"}
+}
+```
+
+`detail` is a string like every other forge error, so existing clients still read it; `code: "run_active"` is
+the machine-readable marker that tells this 409 apart from the `Idempotency-Key` 409s, which are a plain
+`{"detail": ...}` with no `code`. Nothing from the request is echoed. Wait for the active run (poll
+`GET /run/{id}` or attach to its stream) or cancel it (`POST /run/{id}/cancel`), then start yours.
+
+With an `Idempotency-Key`, the key is looked at first: a retry of the active run's own request (same key, same
+body) still gets its run back (202, `Idempotent-Replayed: true`), never a 409 about itself, and the same key with
+a different body is still the key's 409. A request refused because a run is active records no key, so the same
+request with the same key starts a run once nothing is active. The check and the creation are one critical
+section across every request, keyed or not, so concurrent requests start exactly one run.
+
+A `dry_run` is exempt both ways: it takes no GPU lease and starts no process, so it neither waits for nor blocks a
+real run. After a restart nothing stale blocks: a run that was in flight when forge went away is restored
+`failed` (or saved `cancelled` by a graceful stop), so it is not active. A host whose GPU broker can place several
+runs at once (several GPUs behind argus-iris) can raise the limit with `ARGUS_FORGE_MAX_ACTIVE_RUNS` (default 1;
+an unparseable or sub-1 value falls back to 1); the 409 then names the oldest active run.
 
 > The local CLI `argus-forge run` streams live in your terminal and is independent of the server registry.
 
