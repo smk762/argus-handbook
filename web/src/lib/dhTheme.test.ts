@@ -57,7 +57,11 @@ function boot({ cookiesBlocked, storage }: { cookiesBlocked: boolean; storage: M
   ctx.window = ctx;
   runInContext(SCRIPT, createContext(ctx));
   const api = ctx.dhTheme as { get(): string | null; set(t: string | null): void };
-  return { api, fire };
+  // Another subdomain writing the shared cookie, behind this page's back.
+  const setCookie = (v: string) => {
+    jar = v;
+  };
+  return { api, fire, setCookie };
 }
 
 describe("dh-theme with cookies that can't be stored", () => {
@@ -80,7 +84,8 @@ describe("dh-theme with cookies that can't be stored", () => {
   it("still follows a cookie another subdomain changed when cookies work", () => {
     const page = boot({ cookiesBlocked: false, storage: new Map() });
     page.api.set("dark");
+    page.setCookie("dh-theme=light");
     page.fire("visibilitychange");
-    expect(page.api.get()).toBe("dark");
+    expect(page.api.get()).toBe("light");
   });
 });
