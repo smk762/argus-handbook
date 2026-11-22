@@ -176,7 +176,26 @@ A single SQLite database (`portraits.sqlite`, WAL mode) with two tables:
   (the identity-only columns stay `NULL` for wardrobe / setting / concept subjects)
 - **`photographs`** — `category · title · photographer · year · source · source_url ·
   licence · attribution · width · height · file_size · filename ·
-  **sha256 (UNIQUE)** · phash · remote_url · fetched_from · status · downloaded_at`
+  **sha256 (UNIQUE)** · phash · remote_url · fetched_from · status · downloaded_at ·
+  captured_at · captured_at_source · camera_make · camera_model · capture_medium`
+
+`captured_at` is the capture date the landed file itself states: EXIF
+`DateTimeOriginal`, as an ISO 8601 datetime with its UTC offset when the file
+gives one, and `captured_at_source` is `exif`. It is read before a downscale or
+re-encode drops the metadata. Both stay `NULL` when the file states no
+trustworthy date (an unset `0000:00:00` clock, a date before 1826 or in the future).
+IFD0 `DateTime` (last modified) is never used. On a scan, EXIF dates the scan,
+not the shot. It exists only for landed files, so it doesn't filter the archives
+(those use the caption `year` and `clip_era`). The export sidecar carries both fields.
+
+`camera_make` / `camera_model` are the device the landed file's EXIF names
+(`Make` / `Model`), read before a downscale like `captured_at`. `capture_medium`
+is what that device says: `scan` for a film or flatbed scanner (Coolscan,
+Perfection, Scanjet, Noritsu, …), `digital` for a camera or phone, and `NULL`
+when the file names no device. `NULL` means unknown, never digital: many scans
+carry no EXIF at all. It names the device, not the subject, so a digital camera
+photographing a print or slide reads as `digital`. The export sidecar and
+`/photos` carry all three.
 
 `remote_url` is the source's own full-resolution URL, always kept so a file can
 be re-fetched at original size; it is also the resume key. `fetched_from` is set
@@ -329,6 +348,52 @@ argus-quarry archives fetch slice.json            # --dry-run lists the URLs fir
 
 Neither archive carries capture dates (Megalith's archived EXIF has none), so the year filter only finds images whose caption states a year. Rebuild old indexes after upgrading: an index from an older quarry reports `stale` and asks for `archives index`.
 
+### CLIP era and kind (PD12M)
+
+For dates beyond the 0.5% of captions that name a year, `archives era` estimates each PD12M image's **era** and **kind** zero-shot from its published CLIP ViT-L/14 embedding. It scores the embedding against fixed prompts ("a photograph from the 1950s", "a smartphone photo", "a 17th-century painting", …) in the space PD12M published its embeddings in. The prompt vectors were encoded once with the matching text tower and are committed as `archives/data/era_prompts.json`, pinned by sha256. Scoring is one matrix product per chunk, so it needs no text model and no torch, only `[embeddings]`.
+
+```bash
+argus-quarry archives era pd12m                       # scores all 12.4M rows, then rebuilds the metadata index
+argus-quarry archives era pd12m --limit-rows 1000000  # a sample: the first 1M rows; the rest stay unscored
+argus-quarry archives search pd12m --clip-kind photo --clip-era 2000-now --clip-era-min-conf 0.7 --q woman
+```
+
+| Filter | Values | Stored as |
+|---|---|---|
+| `clip_eras` / `?clip_era=` | `pre1800`, `1800s`, `1900-1945`, `1946-1979`, `1980-1999`, `2000-now` | `clip_era`, `clip_era_conf` (the era's probability) |
+| `clip_kinds` / `?clip_kind=` | `photo`, `artwork`, `document` | `clip_kind`, `clip_kind_conf` |
+| `clip_era_min_conf`, `clip_kind_min_conf` | 0–1 | |
+
+- **The names say where the value came from.** `year` is caption-mentioned and `clip_*` is the zero-shot estimate. Facets carry `date_sources` so a UI can label each one. Unscored items (Megalith, or rows past a sample run) are left out by a `clip_*` filter, never guessed.
+- **"Photo, digital era"** is `clip_kind=photo&clip_era=2000-now`, and "pre-digital" is the other five eras. `2000-now` approximates the digital-camera era: consumer digital overtook film around 2003–2005.
+- **Precision** is measured on a held-out half of the 61k caption-dated items, plus collection-level references, in [docs/era-calibration.md](docs/era-calibration.md). Read it before you trust a bucket. In short, photo versus digital holds up: 99.2% of iNaturalist photos read as photo and 2000-now, against 0.3% of historic-archive photos. The finer periods are coarse, with about 62% balanced accuracy.
+- **The run** streams the embeddings a chunk at a time (65,536 rows, about 200 MB), writes each chunk as it goes, and resumes after an interruption. It reads the local float16 copy from `archives index --embeddings` when there is one, else the archived `.npy` files. From the NAS share it scored 1M rows in 40 s, so a full pass takes about 9 minutes plus a 1-minute reindex. Its peak RSS was 3.3 GB, all of it the reindex. Scores live in `$QUARRY_HOME/cache/archives/pd12m.era.parquet`, and every `archives index` joins them back on the embedding row.
+
+### Upload year (Megalith)
+
+Megalith publishes no embeddings, so CLIP era can't date it. Every item does have a Flickr photo id, though, and Flickr gives ids in increasing order as photos are uploaded. A committed table of id/upload-time breakpoints gives every Megalith item an approximate **`upload_year`** at index time, with no request.
+
+```bash
+argus-quarry archives search megalith --upload-year-min 2019 --q "street"
+```
+
+- **It is the upload year, never the year the photo was taken.** Flickr Commons institutions upload 19th-century photographs today, and scanned film is uploaded years after it was shot. The field, the filters (`upload_year_min` / `upload_year_max`) and facets' `date_sources` (`flickr-upload`) all say so.
+- **Accuracy.** Measured against the posted dates of 351 held-out Megalith photos: 87.8% exact year, 94.3% within one year, median error 14 days. It is coarser before 2011 (61% exact). See [docs/flickr-upload-calibration.md](docs/flickr-upload-calibration.md).
+- **The table** is rebuilt by `scripts/calibrate_flickr_upload.py`. It reads upload dates from public Flickr photo pages, keyless, or from `flickr.photos.getInfo` when `QUARRY_FLICKR_API_KEY` is set (Flickr issues keys only to Pro accounts). Rebuild the Megalith index afterwards.
+
+### Museum catalogue dates (PD12M, the Met)
+
+PD12M names each image copy `uuid5(URL, <the museum's image URL>)`, so a museum object whose image URL hashes to a PD12M filename is exactly the object that image came from. `archives museum` harvests the Met's open API (no key) and records each matched item's **catalogue date** and object:
+
+```bash
+argus-quarry archives museum pd12m --limit 3000    # a sample; re-run to continue (resumable)
+argus-quarry archives search pd12m --museum-year-min 1850 --museum-year-max 1899 --q portrait
+```
+
+- **Columns.** `museum` (`met`), `museum_object_id`, `museum_object_url`, `museum_date` (the catalogue's text) and `museum_year_begin` / `museum_year_end` (BCE is negative). The filters `museum_year_min` / `museum_year_max` match an object only when its whole catalogue range lies inside them. Facets name the source as `museum-catalogue`.
+- **Measured** on 3,000 random Met objects: 58.7% of the Met's public-domain objects with images are in PD12M. From the PD12M side, essentially all 149,458 Met items are matchable, 99.9% of matches have a catalogue date, and 60 of 60 matches compared as the same picture. See [docs/museum-dates.md](docs/museum-dates.md).
+- **It is slow on purpose.** The Met's firewall refuses an IP for a while after a few hundred quick requests, so the harvest runs at 1 request/second and waits out blocks (`--block-wait`). The full collection is about 503k requests, nearly 6 days. Until it has run, the columns stay empty for unharvested items.
+
 Caption terms (`q`, `exclude`, `--q`, `--exclude`) are case-insensitive substrings. Every term in `q` must appear and none in `exclude` may; `"quoted phrases"` stay whole, and a leading `-` in `q` excludes a term (`harbor boats -painting`). An uncaptioned item doesn't mention anything, so an exclusion keeps it.
 
 A slice is a query plus where it lands:
@@ -382,9 +447,9 @@ The server exposes the same thing over HTTP. Every route is `GET` except the fet
 
 | Route | Returns |
 |---|---|
-| `GET /archives` | each archive's status (`configured`, `present`, `indexed`, `items`, and `semantic`: `{indexed, vectors, model, built_at}` or `null` when the archive has no embeddings) and `fetch_allowed` |
-| `GET /archives/{name}/facets` | collections, licences and MIME types with counts |
-| `GET /archives/{name}/search?q=&exclude=&collection=&licence=&mime=&min_width=&min_height=&min_short_side=&orientation=&sized_only=&tone=&medium=&year_min=&year_max=&ids=&sort=&limit=&offset=` | `{total, offset, limit, items}`; `sort` is `shuffle` (fixed per index) or `largest`. Repeat `collection` or comma-join it with no space after the comma (institution names like `Natural History Museum, Berlin` keep theirs); `medium` must be one of `photo`, `painting`, `drawing`, `print`, `map`, `text`, `object` (422 otherwise). Add `semantic=<text>` or `similar_to=<id>` to [rank by similarity](#semantic-search-pd12m): then `ranked` is true and each item has a `score` |
+| `GET /archives` | each archive's status (`configured`, `present`, `indexed`, `items`, and `semantic`: `{indexed, vectors, model, built_at}` or `null` when the archive has no embeddings, and `era`: `{scored, of, prompts_sha256, current, built_at, source}` or `null`) and `fetch_allowed` |
+| `GET /archives/{name}/facets` | collections, licences and MIME types with counts; `clip_eras` / `clip_kinds` with counts, `clip_scored`, `upload_dated` / `upload_year_range`, `museum_matched` / `museum_dated` / `museum_year_range`, and `date_sources` (which fields are caption-derived, CLIP zero-shot, Flickr upload or museum catalogue) |
+| `GET /archives/{name}/search?q=&exclude=&collection=&licence=&mime=&min_width=&min_height=&min_short_side=&orientation=&sized_only=&tone=&medium=&year_min=&year_max=&clip_era=&clip_era_min_conf=&clip_kind=&clip_kind_min_conf=&upload_year_min=&upload_year_max=&museum_year_min=&museum_year_max=&ids=&sort=&limit=&offset=` | `{total, offset, limit, items}`; `sort` is `shuffle` (fixed per index) or `largest`. Repeat `collection` or comma-join it with no space after the comma (institution names like `Natural History Museum, Berlin` keep theirs); `medium` must be one of `photo`, `painting`, `drawing`, `print`, `map`, `text`, `object` (422 otherwise). Add `semantic=<text>` or `similar_to=<id>` to [rank by similarity](#semantic-search-pd12m): then `ranked` is true and each item has a `score` |
 | `GET /archives/{name}/items/{id}` | one item |
 | `GET /archives/{name}/thumb?id=&size=` | WEBP rendered in memory (PD12M), or a 307 to Flickr's own 500px rendition (Megalith) |
 | `GET /archives/{name}/slice?<search filters>&category=&subject=&limit=` | `{slice, matches, will_fetch, command, fetch_allowed}` |

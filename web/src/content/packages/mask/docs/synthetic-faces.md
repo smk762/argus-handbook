@@ -85,6 +85,58 @@ Generate a batch (16–32), shortlist using the table above, then refine.
 - **Avoid face restorers** (GFPGAN, CodeFormer). They smooth skin and quietly change the identity, which is fatal if you need more than one view of the same person.
 - **No real-person tools.** Never fix a portrait with a tool that takes a reference face, unless that reference is itself one of your synthetic portraits.
 
+## For a LAM head
+
+A LAM splat head ([lam/README.md](../lam/README.md)) is built from the one portrait, so it knows nothing the portrait did not show. Everything in the table above holds, and three things matter more:
+
+- **Hair must cover the hairline and the temples.** LAM invents the sides of the head. Where the forehead runs bare up to a centre parting, or the hair is pulled back off the temples, a pale gap opens as soon as the head tips back or turns (from about 7° and 12° on `splat-01`). A fringe, or hair that sweeps across the top of the forehead and down past the temples, hides it: `syn-w101` holds to 20° either way. This overrides "forehead visible" above: the brows and eyes stay clear, the hairline does not have to.
+- **Flat light, and no smile.** The head keeps the portrait's light and expression for good. Ask for a large soft light directly in front and a relaxed, closed mouth.
+- **Head and shoulders, plain dark background.** The bust fades out below the collarbone, so a low neckline or a plain top reads best; the background is matted away.
+
+Make a batch, build a head from each, and pick from a contact sheet, never from the portraits alone: two portraits that look alike can give heads that fail in different places.
+
+```bash
+# 1. Portraits: FLUX.1 schnell through argus-darkroom, no LoRA, so the face is synthetic. One per seed, each with its record.
+python lam/portraits.py --subject "a woman in her thirties, short dark hair with a fringe over the forehead, green eyes, \
+    wearing a charcoal crew-neck top" --seeds 501-508 --out work/portraits
+
+# 2. Heads, one per portrait (about 2 minutes and 9 GB of VRAM each).
+lam/make_heads.sh $(for p in work/portraits/*.png; do n=$(basename $p .png); echo "s$n=$p"; done)
+
+# 3. Add each as a face (argus-mask inspect --write-manifest), then draw the sheet from a running server.
+python lam/sheet.py --url http://127.0.0.1:8109 --out work/sheet.jpg s501 s502 s503
+```
+
+The sheet draws each head with its limits off: from the front, turned 12° and 20° each way, tipped back and forward, and with the jaw at 0.35 and 0.6. Reject a head with a gap at the hairline or a smear at the temple inside 12°. If the best head still gives out early, give its manifest its own `limits` (README § Faces) and the viewer will keep it inside them.
+
+Say the age in the subject (18 or over), and never a name. The subject is the only part of the prompt to change; the rest is the recipe.
+
+### Pick the style: realistic character art, not a photograph
+
+LAM keeps a face's outline (rendered at the portrait's own camera, the landmarks land within about 3% of the eyes' spacing) but softens what is inside it: the lids sit lower over the iris, the lips thin, the skin loses its fine detail. A photograph comes out of that heavier and older than it went in; an idealised face with smooth, painted skin survives it (#151). So `--style` picks the template around the subject:
+
+| `--style` | Look | Verdict on the first batches |
+|---|---|---|
+| `character` | realistic adult proportions and light, a smooth painted finish | the pick: `lam-c1011` and `lam-c1022` |
+| `stylised` | a digital painting, idealised | good; a little more illustrated |
+| `photo` (default) | a studio photograph | a believable portrait, a head that reads about ten years older |
+| `semireal` | a 3D render | too doll-like, and reads young: don't use it |
+
+Every style is a text prompt only, so the face stays `synthetic`. Say "late twenties" or older in the subject: a painted style pulls a face younger. Reject a portrait with a signature or text in it (FLUX paints one now and then), however clean its face.
+
+### Fit its rest set to its portrait
+
+The viewer's default rest set (`warm`) closes the lids a little, which on a LAM head's already low lids reads as hooded. `lam/fit_rest.py` searches a rest set for each head instead: the viewer draws the head with each candidate, and MediaPipe scores it against the portrait (eyes, lips and brows placed against the outline; how much iris the lids show; how full the lips are; MediaPipe's own ARKit scores). About 3½ minutes per head on the CPU, against a running server:
+
+```bash
+python lam/fit_rest.py --url http://127.0.0.1:8109 --face lam-c1022 --portrait assets/lam-c1022/source/portrait.png \
+    --model face_landmarker.task --out work/lam-c1022.rest.json
+```
+
+It writes a rest set (`fit-<face>`) to define in `expressions.json` and choose for the face, its score against `warm`'s, and both renders. A slight smile is kept where the portrait has one. A splat head is drawn with a long lens by default (23° from 1.6 m, as the portrait was taken): from close up at a wide angle the same head reads narrower and longer.
+
+`FIT_SHAPE=1 lam/make_heads.sh ...` also searches the head's FLAME shape against the portrait at its own camera (about 10 minutes more per head). It helped `lam-s622` a little (misfit 0.033 to 0.026); it is off by default.
+
 ## More than one view
 
 One-shot routes need only the single frontal portrait. Prefer them.

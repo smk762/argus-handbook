@@ -26,6 +26,8 @@ $ argus-curator [OPTIONS] COMMAND [ARGS]...
 * `embeddings-convert`: Fetch, verify and convert the CLIP image...
 * `dnsmos-fetch`: Fetch the DNSMOS P.835 model a speech...
 * `speaker-fetch`: Fetch the speaker-embedding model a speech...
+* `lid-convert`: Fetch, verify and convert the language-ID...
+* `vad-fetch`: Fetch the Silero VAD model a speech scan&#x27;s...
 * `schema`: Emit the wire-contract JSON Schema...
 
 ## `argus-curator scan`
@@ -72,11 +74,16 @@ $ argus-curator scan [OPTIONS] {source}
 * `--dnsmos-model <path>`: Speech: DNSMOS ONNX model (ARGUS_CURATOR_DNSMOS_MODEL)
 * `--speakers`: Speech: embed and cluster each passing clip&#x27;s speaker (see speaker-fetch)
 * `--speaker-model <path>`: Speech: speaker-embedding ONNX model (ARGUS_CURATOR_SPEAKER_MODEL)
+* `--language-id`: Speech: check each passing clip&#x27;s corpus language label with a language-ID model (see lid-convert)
+* `--lid-model <path>`: Speech: language-ID ONNX model (ARGUS_CURATOR_LID_MODEL)
+* `--vad <str>`: Speech: energy (default) or silero, the VAD for speech ratio and SNR (see vad-fetch)
+* `--vad-model <path>`: Speech: Silero VAD ONNX model (ARGUS_CURATOR_VAD_MODEL)
 * `--speech-config <path>`: Speech: a JSON SpeechConfig with the thresholds (the flags above override it)
 * `--speaker-id <str>`: Speech export: keep only these speakers (comma-separated speaker_id)
 * `--accent <str>`: Speech export: keep only these accents (comma-separated corpus labels, exact)
 * `--language <str>`: Speech export: keep only these languages (comma-separated corpus labels, exact)
 * `--exclude-speaker-mismatch`: Speech export: drop clips whose corpus speaker label the clustering disputes (needs --speakers)
+* `--exclude-language-mismatch`: Speech export: drop clips whose corpus language label the language-ID model disputes (needs --language-id)
 * `--min-hours-per-speaker <float>`: Speech export: drop a speaker with fewer hours of kept audio
 * `--max-hours-per-speaker <float>`: Speech export: cap each speaker&#x27;s hours, best clips first
 * `--max-hours-per-accent <float>`: Speech export: cap each accent&#x27;s hours, taking its speakers in turn
@@ -86,6 +93,7 @@ $ argus-curator scan [OPTIONS] {source}
 * `--voice-consent <str>`: Speech export: a real person&#x27;s voice consent record (argus-cortex ConsentRecord JSON), relative to the scanned folder or absolute, instead of --corpus (with --consent-delivery; needs --speakers)
 * `--consent-delivery <str>`: Speech export: the voice delivery --voice-consent must cover, e.g. neutral
 * `--voice-consent-max-distance <float>`: Speech export: keep a clip under --voice-consent only within this cosine distance of the record&#x27;s reference recordings&#x27; voice (default 0.25, strict; docs/speech.md)
+* `--second-voice-max-distance <float>`: Speech export: under --voice-consent, leave out a clip whose farthest 1.5 s of speech is past this cosine distance of the reference voice: a second voice (default 0.40, strict, synthetic calibration; docs/speech.md)
 * `--held-out <int>`: Speech export: hold out about this many clips, by whole speakers (or a fraction)
 * `--held-out-fraction <float>`: Speech export: hold out about this fraction of the clips, by whole speakers
 * `--split-method <str>`: Speech export: spread (held-out speakers evenly through the ranking) or random  [default: spread]
@@ -187,7 +195,7 @@ $ argus-curator serve [OPTIONS]
 **Options**:
 
 * `-p, --port <int>`: Port to listen on  [default: 8101]
-* `--host <str>`: Host to bind to  [default: 0.0.0.0]
+* `--host <str>`: Host to bind to (loopback by default; 0.0.0.0 exposes the write endpoints to the network)  [default: 127.0.0.1]
 * `--cors`: Enable CORS for the localhost dev frontend (:3000)
 * `--cors-origin <list[str]>`: Allowed CORS origin (repeatable; implies CORS; or CURATOR_CORS_ORIGINS)
 * `--cors-any`: Allow ANY origin, credential-less (public demos only; implies CORS)
@@ -348,6 +356,46 @@ sha256; 25 MB, runs on onnxruntime (argus-curator).
 
 ```console
 $ argus-curator speaker-fetch [OPTIONS]
+```
+
+**Options**:
+
+* `-o, --output <path>`: Where to write the model (default: model cache)
+* `--help`: Show this message and exit.
+
+## `argus-curator lid-convert`
+
+Fetch, verify and convert the language-ID model a speech scan&#x27;s --language-id runs.
+
+SpeechBrain&#x27;s VoxLingua107 ECAPA-TDNN (speechbrain/lang-id-voxlingua107-ecapa,
+Apache-2.0; VoxLingua107 data CC BY 4.0), pinned by Hugging Face revision
+and sha256; 107 languages, ~85 MB fp32. Writes the ONNX model and its
+conversion record (&lt;model&gt;.json) beside it; the scan runs it on onnxruntime
+alone (argus-curator). Needs: pip install argus-curator
+
+**Usage**:
+
+```console
+$ argus-curator lid-convert [OPTIONS]
+```
+
+**Options**:
+
+* `--checkpoint <path>`: Local dir with embedding_model.ckpt, classifier.ckpt and label_encoder.txt (default: download the pinned ones)
+* `-o, --output <path>`: Where to write the ONNX model (default: model cache)
+* `--help`: Show this message and exit.
+
+## `argus-curator vad-fetch`
+
+Fetch the Silero VAD model a speech scan&#x27;s --vad silero runs.
+
+snakers4/silero-vad (MIT), pinned by release commit and sha256; 2.3 MB,
+runs on onnxruntime on CPU (argus-curator).
+
+**Usage**:
+
+```console
+$ argus-curator vad-fetch [OPTIONS]
 ```
 
 **Options**:
