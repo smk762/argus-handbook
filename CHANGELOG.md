@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- GPU host: the link to an issue in a private repo is gone (#25).
+- GPU host: immich-ml under argus-iris describes what iris 0.2.1 ships (`adapter: external`, `evict_by: stop`, the policy rule and `IRIS_AGENT_CONTAINERS`) instead of planned support. argus-iris is public, so its issue is linked again (#25).
 - Link previews: every page now has a 1200×630 card image (`web/src/app/opengraph-image.tsx`, drawn at build time and served as `image/png`) and a `summary_large_image` card. The home page's title no longer repeats the site name ("Argus docs · Argus docs"), and pages keep the site name and type in their Open Graph tags.
 
 ## [0.1.0] - 2026-11-20

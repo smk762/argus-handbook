@@ -51,7 +51,37 @@ render can still collide with a caption run.
 Immich's machine-learning server is in the same position when it runs on this
 host (see [Remote machine learning on the GPU host](/setup/services/immich#remote-machine-learning-on-the-gpu-host)).
 It doesn't take part in the lease either. It gives VRAM back only through its
-own idle unload (`MACHINE_LEARNING_MODEL_TTL`). argus-iris currently shows its
-VRAM as an unclaimed process and can't evict it. Support for naming it as an
-immich-ml resident and stopping it under VRAM pressure is planned. When
-the container is stopped, Immich falls back to the next URL in its list.
+own idle unload (`MACHINE_LEARNING_MODEL_TTL`). [argus-iris](https://github.com/smk762/argus-iris)
+(0.2.1 and later) can name it and, if you opt in, stop it when a lease needs the
+room. While it's stopped, Immich falls back to the next URL in its list, so set
+one up first.
+
+1. Add `immich_machine_learning` to `IRIS_AGENT_CONTAINERS` on this host's iris
+   agent. The broker can't start or stop any container that isn't listed there.
+2. Add it under `services:` in the broker config (`IRIS_CONFIG`). Leave out
+   `evict_by` to have iris report its VRAM and never stop it:
+
+   ```yaml
+   - id: immich-ml
+     node: gpu-host             # this host's node id in the same file
+     adapter: external
+     base_url: "http://gpu-host:3003"
+     health_path: /ping
+     container: immich_machine_learning
+     evict_by: stop
+   ```
+
+3. Add it under `residents:` in the policy file (`IRIS_POLICY`):
+
+   ```yaml
+   - match: { resident: "gpu-host/immich-ml" }
+     enforce: false
+   ```
+
+   With `enforce: false` the dashboard shows that iris would stop it for a lease
+   and does nothing. Set it to `true` once **Stop** and starting it again have both
+   worked by hand. Iris can't see Immich's work in flight, so it goes by how long
+   the container has been idle. It starts a container it stopped for a lease again
+   once no lease is active on the host.
+
+How it was built: [smk762/argus-iris#29](https://github.com/smk762/argus-iris/issues/29).
