@@ -53,6 +53,5 @@ host (see [Remote machine learning on the GPU host](/setup/services/immich#remot
 It doesn't take part in the lease either. It gives VRAM back only through its
 own idle unload (`MACHINE_LEARNING_MODEL_TTL`). argus-iris currently shows its
 VRAM as an unclaimed process and can't evict it. Support for naming it as an
-immich-ml resident and stopping it under VRAM pressure is tracked in
-[smk762/argus-iris#29](https://github.com/smk762/argus-iris/issues/29). When
+immich-ml resident and stopping it under VRAM pressure is planned. When
 the container is stopped, Immich falls back to the next URL in its list.
