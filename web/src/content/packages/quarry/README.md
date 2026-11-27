@@ -300,9 +300,17 @@ never leaks a filesystem path. Point an orchestrator's *readiness* probe at
 `/ready` to shed a container that is up but has no data to serve, and its
 *liveness* probe at `/health`.
 
+`/health` is served by argus-cortex's `install_health`, so its body is the
+suite's `ServiceHealth` with quarry's own `quarry_home` and `fetch_allowed`
+beside it. `status` is always `ok`: quarry gives it no dependency checks, which
+is what keeps it independent of the pool (`GET /health?checks=0` answers the
+same). `read_only` is `true` unless the archive fetch is armed
+(`QUARRY_ALLOW_FETCH=1`). `peer` and `build` repeat the container's `ARGUS_PEER`
+and `ARGUS_BUILD` variables when they are set.
+
 | Endpoint | Returns |
 |---|---|
-| `GET /health` | Liveness: `200 {status, service, version, quarry_home, fetch_allowed}` while the process is up |
+| `GET /health` | Liveness: `200 {status, service, version, quarry_home, fetch_allowed, …}` while the process is up. The body is the suite's `ServiceHealth` (argus-cortex 0.16: also `service_version`, `started_at`, `wire`, `capabilities`, `checks`, `read_only`, `build`, `peer`) |
 | `GET /ready` | Readiness: `200 {status: ready, service, database: ok}`, or `503 {status: unavailable, service, database}` when the pool cannot be served |
 | `GET /stats` | Counts by status / category / source / licence + `total_bytes` (mirrors `stats`) |
 | `GET /subjects?category=` | Distinct subjects with landed photo counts: `{subjects: [{folder, category, photo_count}]}` |
@@ -505,6 +513,27 @@ docker compose --profile curator up --build    # then curate the published image
 > resolve inside the curator/lens containers, mount `QUARRY_HOME` read-only there
 > too, or run `export --copy`.
 
+This repo has no compose file of its own. A compose file that runs the server
+gives its container the suite's discovery labels, so argus-iris can list it and
+other services can ask for it by name:
+
+```yaml
+services:
+  quarry:
+    image: ghcr.io/smk762/argus-quarry
+    environment:
+      ARGUS_PEER: quarry          # repeats the label, so /health can report it
+    labels:
+      argus.peer: quarry
+      argus.service: argus-quarry
+      argus.health: /health
+      argus.port: "8102"
+```
+
+Quarry calls no other Argus service and reads none of the suite's shared
+settings (`~/.config/argus/suite.env`), so its container needs no suite-file
+mount. Its own `QUARRY_*` variables stay in its environment.
+
 ## Sources
 
 | Source | Status |
@@ -532,6 +561,8 @@ from the committed tape in `web/public/tape/`. To re-record the tape (talks to W
 uv run --no-sync python scripts/record_tape.py record --subjects docs/demo/subjects.yaml --limit 10 --fresh
 uv run --no-sync python scripts/record_tape.py build
 ```
+
+`.github/workflows/pages.yml` deploys it to Cloudflare Pages from every `dev` commit that passes CI.
 
 ## Related projects
 

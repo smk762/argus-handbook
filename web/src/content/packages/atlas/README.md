@@ -236,16 +236,18 @@ The starter template names an SDXL depth ControlNet model directly; replace that
 
 ### GPU leases (argus-iris)
 
-Every bake holds a GPU lease from the suite's coordinator, set host-wide by `ARGUS_GPU_*` (unset means no gating, which is how atlas ran before). With `ARGUS_GPU_COORDINATOR=broker`, a bake asks [argus-iris](https://github.com/smk762/argus-iris) for a `batch` lease on `comfyui` (kind `bake`, declared in [`gpu-tenant.yaml`](gpu-tenant.yaml)) and sends its prompt to the ComfyUI the grant names, or to `COMFYUI_BASE_URL` when the grant names none. The lease covers the ComfyUI round trip only: controls, the gate, the crop and the tiles are GDAL work and hold no GPU.
+Every bake holds a GPU lease from the suite's coordinator, set host-wide by `ARGUS_GPU_*` (unset means no gating, which is how atlas ran before). With `ARGUS_GPU_BROKER_URL` set, a bake asks [argus-iris](https://github.com/smk762/argus-iris) for a `batch` lease on `comfyui` (kind `bake`, declared in [`gpu-tenant.yaml`](gpu-tenant.yaml)) and sends its prompt to the ComfyUI the grant names, or to `COMFYUI_BASE_URL` when the grant names none. The lease covers the ComfyUI round trip only: controls, the gate, the crop and the tiles are GDAL work and hold no GPU.
 
 `chunks` holds one lease for the whole block, taken when the first chunk is painted. Before each later chunk it checks whether the broker wants the GPU back. If it does, atlas releases the lease and queues again, pinned to the node the block started on so that one recipe is painted by one ComfyUI. A prompt already in ComfyUI runs to the end; nothing is killed. A refused or timed-out lease fails the bake with a message that says so. When iris can't be reached, the lease comes from `ARGUS_GPU_BROKER_FALLBACK`.
 
+The URL and the token are all atlas needs. argus-cortex reads the tenant and its kinds from `gpu-tenant.yaml` in the working directory or at `/app/gpu-tenant.yaml`, where the image ships it. `argus-atlas serve` registers the tenant with the broker at startup, keeps it registered, and signs off at shutdown, so iris knows atlas before its first bake; the CLI registers with its first lease. Startup never waits on the broker.
+
+`ARGUS_GPU_BROKER_URL`, `ARGUS_GPU_BROKER_TOKEN` and `ARGUS_COMFYUI_URL` are the same for every Argus service on a host, so they can be written once in the suite settings file, `~/.config/argus/suite.env` (mode 600; `python -m argus_cortex.settings --init` creates it), instead of in each repo's `.env`. argus-cortex reads the environment first and the file second, so a value set for atlas still wins. Under Compose, add [`compose.suite.yaml`](compose.suite.yaml) to mount the file read-only at `/etc/argus/suite.env` (`COMPOSE_FILE=compose.yaml:compose.suite.yaml` in `.env`); it is a separate file because a host without a suite file could not start with the mount in place.
+
 | Variable | Value |
 |---|---|
-| `ARGUS_GPU_COORDINATOR` | `broker` (or `lease`, `none`) |
-| `ARGUS_GPU_BROKER_URL` | `http://<GPU_HOST>:8120` |
+| `ARGUS_GPU_BROKER_URL` | `http://<GPU_HOST>:8120`; unset means no gating |
 | `ARGUS_GPU_BROKER_TOKEN` | the shared caller token (a secret: the host's `.env`, never a repo) |
-| `ARGUS_GPU_TENANT_MANIFEST` | `gpu-tenant.yaml` (the image ships it at `/app/gpu-tenant.yaml`, and compose sets that path) |
 | `ARGUS_GPU_BROKER_FALLBACK` | `lease` (default) or `none` |
 | `ARGUS_GPU_LEASE_TIMEOUT_S` | how long a lease may wait in the broker's queue (default 300 s); a background re-bake needs hours |
 | `ATLAS_GPU_PRIORITY` | the class atlas asks for: `batch` (default) or `background`, which queues behind every other tenant and runs on spare capacity |
@@ -270,7 +272,7 @@ The three failures new users hit, and what to do:
 | `--resolution` too fine, largest `--bbox` that fits is printed | Bounding box is too large for the 1536 cap at that ground resolution | Use the `--bbox` the message gives you, or drop `--resolution` and let `--long-side` choose the resolution. |
 | `doctor` shows `backend: comfyui — unreachable (...)`; `bake` fails with `ComfyUI request to <url> failed: ...` | Nothing listening on `COMFYUI_BASE_URL` | Start ComfyUI on the host, or pass `--comfyui-url`. Inside Compose the default reaches the host via `host.docker.internal`. |
 | `bake` exits 3 | `ATLAS_ALLOW_BAKE` is not `1` | Set it on purpose. The default is read-only so a demo box cannot be made to spend GPU time. |
-| `bake` fails with `the GPU broker refused the lease: …` or `no GPU lease in time: …` | `ARGUS_GPU_COORDINATOR=broker` and iris would not place the bake | Read the reason it gives; the bake is not retried. Unset `ARGUS_GPU_COORDINATOR` to bake without leases. |
+| `bake` fails with `the GPU broker refused the lease: …` or `no GPU lease in time: …` | `ARGUS_GPU_BROKER_URL` is set and iris would not place the bake | Read the reason it gives; the bake is not retried. Unset `ARGUS_GPU_BROKER_URL` (or set `ARGUS_GPU_COORDINATOR=none`) to bake without leases. |
 
 ## HTTP API
 
@@ -278,7 +280,7 @@ Port 8105, a peer of the other suite servers. CORS from `ATLAS_CORS_ORIGINS`, de
 
 | Method and path | Purpose |
 |---|---|
-| `GET /health` | status, service, version, read-only flag, `osm_allowed`, `delete_allowed`, GDAL version |
+| `GET /health` | the suite's `ServiceHealth` (argus-cortex): `status` (`ok`, or `degraded` when GDAL is missing; both HTTP 200), `service`, `version`, `started_at`, `wire` (`atlas_version`), `checks` (`gdal`, and `comfyui` where baking is allowed, which never degrades the service), `read_only`; plus atlas's own `commit`, `osm_allowed`, `delete_allowed` and `gdal` (the version). `?checks=0` skips the checks |
 | `GET /doctor` | GDAL version, ComfyUI reachability, bake-allowed flag |
 | `GET /presets` | the style presets `POST /bake/stream` accepts by name |
 | `GET /inputs` | what `POST /controls` may name: DEMs, vector files and OSM extracts under `ATLAS_DEM_DIR` |
@@ -309,7 +311,7 @@ Progress events on the bake stream, in order: `controls`, `generate`, `georefere
 | `ATLAS_OVERPASS_URL` | `https://overpass-api.de/api/interpreter` | Overpass endpoint for `osm`, `chunks` and `POST /osm` |
 | `ATLAS_RECIPES_DIR` | `/data/recipes` | Where `--recipe <name>` finds `<name>.json` |
 | `ATLAS_BACKEND` | `comfyui` | Backend key |
-| `COMFYUI_BASE_URL` | `http://host.docker.internal:8188` | ComfyUI on the compose host |
+| `COMFYUI_BASE_URL` | `http://host.docker.internal:8188` | ComfyUI on the compose host. Unset, the suite-wide `ARGUS_COMFYUI_URL` is used, then the default. A value that is not an absolute `http(s)` URL is refused, naming the variable |
 | `ATLAS_MODELS_DIR` | `/data/models` | Checkpoints and LoRAs, read-only, SHA256 recorded per job |
 | `ATLAS_WORKFLOW` | packaged template | API-format ComfyUI graph with `$placeholders` |
 | `ATLAS_CORS_ORIGINS` | `http://localhost:3000` | Browser origins |

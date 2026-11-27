@@ -45,7 +45,7 @@ argus-mask plate generate assets/backgrounds/highland-forest --title "Highland p
   --drift 0.6 --sway 0.4 --dapple 0.35
 ```
 
-**A photoreal splat head**, made from one portrait. A synthetic portrait comes from darkroom ([docs/synthetic-faces.md](https://github.com/smk762/argus-mask/blob/main/docs/synthetic-faces.md): frontal, neutral, even light, hair over the temples). LAM turns it into a Gaussian head ([Splat heads](#splat-heads)), and mask drives it like a mesh, in front of the same backdrops. A splat face over a backdrop is framed head and shoulders, since LAM's heads fade out below the collarbone. Two characters made this way:
+**A photoreal splat head**, made from one portrait. Prefer the [guided head builder](#guided-head-builder) (`/guided.html` on the editor): portrait and provenance in, checks, a LAM build, evals, pick, scene and save. By hand, a synthetic portrait comes from darkroom ([docs/synthetic-faces.md](https://github.com/smk762/argus-mask/blob/main/docs/synthetic-faces.md): frontal, neutral, even light, hair over the temples), then `lam/` ([Splat heads](#splat-heads)). Mask drives the head like a mesh, in front of the same backdrops. A splat face over a backdrop is framed head and shoulders, since LAM's heads fade out below the collarbone. Two characters made this way:
 
 - **Callum MacRae**, a Highland man of about 25, red-bearded, with optional blue woad: SDXL photoreal portrait, LAM head, Highland forest backdrop.
 - **Nadia Volkova**, a blonde operative of about 25 in a black tactical jacket: SDXL photoreal portrait, LAM head, bunker backdrop.
@@ -86,7 +86,7 @@ Or both in containers: `docker compose --profile a2f up --build`, with `DRIVER=a
 | `argus-mask say "<text>" --face <id>` | The same, with the audio streamed from a TTS service. |
 | `argus-mask record --face <id> --out clip.mp4` | Waits for the next session on a face and renders it to a video, offline and frame-exact, with the audio. |
 | `argus-mask serve` | The server and the viewer. Binds `127.0.0.1` unless given `--host`. |
-| `argus-mask editor` | The face editor (port 8111): build heads from presets with Blender. See [Face editor](#face-editor). |
+| `argus-mask editor` | The face editor (port 8111): mesh heads from presets with Blender, and the [guided head builder](#guided-head-builder) for splat heads (`/guided.html`). |
 | `argus-mask consent new\|list\|revoke` | Consent records for a real person's face or voice: write one from a signed release, list them, revoke one. See [Consented faces and voices](#consented-faces-and-voices). |
 | `argus-mask schema [--check]` | Writes or checks `schema/mask-wire.schema.json`. |
 
@@ -109,7 +109,7 @@ This is self-hosted software. What you put on your own screens at home is up to 
 
 Showing or sharing is different. A face is **cleared** (`cleared: true` in its provenance, and in `/faces`) when it is `stock`, `synthetic` or `consented`. Only cleared faces and voices go in this repo, its fixtures and examples, demos, recordings made to publish, or anything commercial. The editor marks a face that is not cleared as `personal`.
 
-To make a synthetic source portrait (an SDXL image of a person who does not exist) for the planned photoreal face routes, see [docs/synthetic-faces.md](https://github.com/smk762/argus-mask/blob/main/docs/synthetic-faces.md).
+To make a synthetic source portrait (or run the [guided head builder](#guided-head-builder) end to end), see [docs/synthetic-faces.md](https://github.com/smk762/argus-mask/blob/main/docs/synthetic-faces.md).
 
 ### Consented faces and voices
 
@@ -123,7 +123,7 @@ A real person can be the avatar: their face, their voice, or both, under a relea
 
 ### The stock head
 
-The repo carries no model files. `make head` (or `python scripts/fetch_stock_head.py`) downloads `stock-01`, a generated adult head built from CC0 MakeHuman assets, and checks it against the size and sha256 in `scripts/stock_heads/stock-01.lock.json` before writing anything. `python scripts/fetch_stock_head.py --id stock-02` fetches the second, a woman of about 25. Both wear the crew uniform and boots, carry the wet line and baked skin maps, and are rigged, so the head turns at the neck (revision 6 of `stock-01`, 3 of `stock-02`). Each also comes waist-up (`waist.glb`) and full-body (`full.glb`), fetched with the head: screens show them with `?framing=waist` and `?framing=full`. Three cleared LAM splat heads come the same way (`--id splat-01`, `splat-02`, `splat-03`); `splat-02` and `splat-03` bring the rest set fitted to their portraits, which the script adds to `assets/expressions.json` and chooses for the head (never replacing a set or a choice already there). To build it yourself with headless Blender and MPFB, or to make another head from a new preset, see [scripts/README.md](https://github.com/smk762/argus-mask/blob/main/scripts/README.md).
+The repo carries no model files. `make head` (or `python scripts/fetch_stock_head.py`) downloads `stock-01`, a generated adult head built from CC0 MakeHuman assets, and checks it against the size and sha256 in `scripts/stock_heads/stock-01.lock.json` before writing anything. `python scripts/fetch_stock_head.py --id stock-02` fetches the second, a woman of about 25. Both wear the crew uniform and boots, carry the wet line and baked skin maps, and are rigged, so the head turns at the neck (revision 6 of `stock-01`, 3 of `stock-02`). Each also comes waist-up (`waist.glb`) and full-body (`full.glb`), fetched with the head: screens show them with `?framing=waist` and `?framing=full`. Four cleared LAM splat heads come the same way (`--id splat-01` to `splat-04`); `splat-02` to `splat-04` bring the rest set fitted to their portraits, which the script adds to `assets/expressions.json` and chooses for the head (never replacing a set or a choice already there). To build it yourself with headless Blender and MPFB, or to make another head from a new preset, see [scripts/README.md](https://github.com/smk762/argus-mask/blob/main/scripts/README.md).
 
 ### Your own head
 
@@ -271,9 +271,31 @@ argus-mask editor --assets-dir assets \
 
 - **Only licensed assets.** The editor offers the assets that an installed pack lists with a licence, and writes each part's licence and author into the face's provenance (`kind: synthetic`). An asset from a CC-BY pack shows up in the licence line.
 - **Adults only.** Age defaults to about 25 (MakeHuman's 0.5); the slider stops at 18 (0.3542), and the preset model and the recipe refuse anything younger.
-- **It only replaces its own faces.** Each face it builds keeps its `preset.json` beside the model; a directory without one (a stock head, a face added by hand) is never overwritten.
-- **Builds and exports go one at a time.** A failed one leaves nothing behind, and the face that was there stays.
+- **It only replaces its own faces.** A mesh export keeps `preset.json` beside the model; a guided save keeps `build.json`. A directory with neither (a stock head, a face added by hand) is never overwritten.
+- **Builds and exports go one at a time.** A failed one leaves nothing behind, and the face that was there stays. Guided LAM builds are one at a time too (host memory watched; the `lam-head` lease only while the pipeline runs).
 - **Keep it local.** A build starts Blender. The editor binds `127.0.0.1`, and `/build` and `/export` are behind the same origin and read-only guards as the server's writes.
+
+### Guided head builder
+
+`/guided.html` on the editor turns a portrait into a talking splat head, with every check and score kept in `<assets>/.guided/<id>/build.json`. Open it from the editor (or `http://127.0.0.1:8111/guided.html`). You need darkroom (source), curator and retina OCR (portrait checks), a LAM checkout with FLAME 2023 Open and the `argus-mask-lam` image ([lam/README.md](lam/README.md)), and a running mask server for the turn / speech / rest jobs that draw through the viewer. Settings are in [Configuration](#configuration) and `.env.example`.
+
+A step runs only when the steps it needs have settled (passed, or an advisory you overruled). A refusal, a failed check, a required check that could not run (`not_checked`), or a stale result blocks later steps. Re-run an earlier step and find something different, and everything after it goes stale until you run it again.
+
+| Step | What it does | Checks and refusals |
+|---|---|---|
+| **Source** | Portrait + provenance: generate a batch through darkroom, pick a passed darkroom record, upload with declared provenance, or restyle a settled source into a style template (`character` by default). | Kind is computed (a LoRA record is never `synthetic`; a restyle never raises the kind). Under-size portraits refused. |
+| **Portrait** | Before any GPU: curator `face_source`, retina OCR, framing / expression / lighting / temples / photograph advisory. | Required check missing → `not_checked` (blocks build). Temple-bare or text refused. Photograph is an advisory with a restyle offer. |
+| **Build** | LAM head from the portrait (`lam/make_heads.sh` in the image). | Needs FLAME 2023 Open, 12 GB+ host memory free, `lam-head` lease. One head at a time; stopped if memory runs low. |
+| **Likeness** | Scores the head against the portrait (colour, DINOv2 identity if available, lids, lips, landmarks). | Scores flag and rank; they do not refuse. |
+| **Rest** | Fits a rest set to the portrait (`lam/fit_rest.py`). | Needs MediaPipe landmarker; writes weights chosen on save. |
+| **Turns** | Contact-sheet poses with limits off; measures yaw / pitch before hairline or temples give out. | Writes measured `limits` onto the face on save. |
+| **Speech** | Fixed `talk.json` take (no TTS) vs `splat-01`; MediaPipe lip gap. | Stutter or oversized mouth → advisory. |
+| **Age** | Curator MiVOLO on portrait-crop and head render. | Head much older than portrait (default ≥ 7 years) → advisory. Not the 18-or-over gate. |
+| **Pick** | Choose one settled candidate (side-by-side on the page). | Needs likeness, rest, turns, speech and age settled. |
+| **Scene** | Backdrop and splat shot (`close` / `wide`). | Bright floor behind the bust → advisory (e.g. garden's pale path). |
+| **Save** | Writes `<assets>/<id>/` with the zip, manifest (limits, framing, provenance), rest, scene, and `build.json`. | Refuses unsettled pick/scene. Optional look-alike check (`who` / `at` / `how` / `found`); a cleared face without one is not `demo_ready`. |
+
+Portrait tips and the by-hand CLI recipe stay in [docs/synthetic-faces.md § For a LAM head](https://github.com/smk762/argus-mask/blob/main/docs/synthetic-faces.md#for-a-lam-head). Gaussian refinement against the portrait (#173) is a measured spike only ([`lam/refine-spike.md`](lam/refine-spike.md)): not a guided step until turns and speech clear it. Procedural accessories on a head bone (#67) are a spike too ([`docs/accessories-spike.md`](docs/accessories-spike.md): `?accessory=earpiece`); no manifest field until a follow-up for the avatar epic.
 
 ## Configuration
 
@@ -282,7 +304,7 @@ argus-mask editor --assets-dir assets \
 | `ARGUS_MASK_ASSETS_DIR` | `assets` | Root of the faces |
 | `ARGUS_MASK_DRIVER` | `energy` | `energy` or `a2f` |
 | `ARGUS_MASK_A2F_URL` | empty | The Audio2Face server, for the `a2f` driver |
-| `ARGUS_MASK_TTS_URL` | empty | The TTS stream endpoint, used by `say`, the editor and the server's `POST /speak` |
+| `ARGUS_MASK_TTS_URL` | empty | The TTS stream endpoint, used by `say`, the editor and the server's `POST /speak`. Unset, the suite's XTTS engine if `ARGUS_XTTS_URL` names one (its `/synthesise/stream`); `off` for none |
 | `ARGUS_MASK_TTS_VOICE` | empty | The TTS voice `say` and `/speak` ask for: a stored clone's name, a speaker number, or `speaker:<name>` |
 | `ARGUS_MASK_FPS` | `30` | Animation frames per second |
 | `ARGUS_MASK_CORS_ORIGINS` | empty | Browser origins allowed to open the sockets, comma-separated |
@@ -293,10 +315,59 @@ argus-mask editor --assets-dir assets \
 | `ARGUS_MASK_MPFB_DATA` | under the user directory | MPFB's data directory, if it is somewhere else |
 | `ARGUS_MASK_BUILD_TIMEOUT_S` | `300` | The editor stops a build that takes longer |
 | `ARGUS_MASK_BUILD_CACHE` | `40` | Builds the editor keeps (about 6 MB each), so undo and repeats skip Blender; `0` keeps none |
+| `ARGUS_MASK_DARKROOM_URL` | `ARGUS_DARKROOM_URL`, else `http://localhost:8106` | argus-darkroom, for a guided source generate/pick/restyle (#167) and for `argus-mask plate` |
+| `ARGUS_MASK_DARKROOM_POLICY` | `default` | Enforcing policy a source portrait's darkroom record must carry |
+| `ARGUS_MASK_PORTRAIT_WIDTH` / `_HEIGHT` | `1024` / `1280` | Size asked of darkroom for a guided source generate or restyle |
+| `ARGUS_MASK_RESTYLE_DENOISE` | `0.7` | Image-to-image denoise when restyling a source into a style template |
+| `ARGUS_MASK_CURATOR_URL` | `ARGUS_CURATOR_URL`, else unset | argus-curator for guided portrait `face_source` (#168). Unset, those checks are `not_checked` and block the build |
+| `ARGUS_MASK_OCR_URL` | `ARGUS_OCR_URL`, else unset | argus-retina-ocr for guided portrait text/signature checks (#168). Unset, text is `not_checked` and blocks |
+| `ARGUS_MASK_PORTRAIT_MIN_SIDE_PX` | `512` | Refuse a guided source portrait shorter than this on either side |
+| `ARGUS_MASK_LAM_DIR` | unset | The LAM checkout with its `model_zoo`, for a guided face's LAM build ([lam/README.md](lam/README.md)). Unset, no LAM head is built |
+| `ARGUS_MASK_FLAME_OPEN` | unset | `flame2023_Open.pkl`. The pipeline refuses any other FLAME |
+| `ARGUS_MASK_LAM_IMAGE` | `argus-mask-lam` | The image the pipeline runs in |
+| `ARGUS_MASK_LAM_SCRIPT` | the checkout's `lam/make_heads.sh` | The pipeline. `lam/` is not part of the package: an installed editor names a checkout's |
+| `ARGUS_MASK_LAM_BLENDER` | `ARGUS_MASK_BLENDER` | Blender 4.5, for LAM's FBX-to-GLB step |
+| `ARGUS_MASK_LAM_MIN_FREE_GB` | `12` | Host memory that must be free before a LAM build starts |
+| `ARGUS_MASK_LAM_STOP_FREE_GB` | `2` | A running LAM build is stopped when free host memory falls under this |
+| `ARGUS_MASK_LAM_TIMEOUT_S` | `1800` | The editor stops a LAM build that takes longer |
+| `ARGUS_MASK_LAM_CACHE` | `20` | LAM heads kept (about 4 MB each) by portrait and pipeline, so the same portrait is not built twice; `0` keeps none |
+| `ARGUS_MASK_DINOV2` | unset | DINOv2-base checkpoint folder for a guided likeness identity score (#169). Unset, a cached copy is used if one is there; otherwise identity is skipped |
+| `ARGUS_MASK_LIKENESS_IMAGE` | `ARGUS_MASK_LAM_IMAGE` | Image that runs `lam/likeness.py` (MediaPipe + torch) |
+| `ARGUS_MASK_LIKENESS_TIMEOUT_S` | `300` | The editor stops a likeness job that takes longer |
+| `ARGUS_MASK_LANDMARKER` | unset | MediaPipe Face Landmarker task file for a guided rest fit. Unset, a cached copy is used if one is there |
+| `ARGUS_MASK_REST_TIMEOUT_S` | `600` | The editor stops a rest fit that takes longer |
+| `ARGUS_MASK_REST_GENERATIONS` | `20` | Evolution generations for `lam/fit_rest.py` |
+| `ARGUS_MASK_TURNS_SCRIPT` | the checkout's `lam/measure_turns.py` | Playwright script that draws turn poses and scores hairline gaps (#170). `lam/` is not part of the package |
+| `ARGUS_MASK_TURNS_SIZE` | `512` | Viewer capture size for turn checks |
+| `ARGUS_MASK_TURNS_GAP` | `0.18` | Skin-share rise vs front that counts as a hairline/temple gap |
+| `ARGUS_MASK_TURNS_TIMEOUT_S` | `600` | The editor stops a turns job that takes longer |
+| `ARGUS_MASK_SPEECH_SCRIPT` | the checkout's `lam/measure_speech.py` | Playwright + MediaPipe script for the speech eval (#171) |
+| `ARGUS_MASK_SPEECH_TAKE` | the package's `talk.json` | Fixed Audio2Face take (no TTS) both the candidate and the reference play |
+| `ARGUS_MASK_SPEECH_REFERENCE` | `splat-01` | Reference face under assets; absent, #161's after baseline is used |
+| `ARGUS_MASK_SPEECH_TIMEOUT_S` | `900` | The editor stops a speech job that takes longer |
+| `ARGUS_MASK_AGE_OLDER_YEARS` | `7` | Flag when the head reads this many years older than its portrait (#172; photo ≈ +10) |
+| `ARGUS_MASK_AGE_TIMEOUT_S` | `120` | Timeout for each curator `POST /faces` age read |
 | `ARGUS_MASK_SERVER_URL` | `http://127.0.0.1:8109` | How the editor reaches the server, to check a face and send a test |
 | `ARGUS_MASK_VIEWER_URL` | the server URL | The origin screens open the viewer at (the TLS proxy, on a LAN); the editor's links point here |
 | `ARGUS_MASK_RECORDINGS_DIR` | `recordings` | Where the Broadcast page's recordings go (an MP4, its WAV and take) |
 | `ARGUS_MASK_VOICES_DIR` | `voices` | The Voices page's checked clips, and each voice's record and clips. The server and `say` read it too, to refuse a consenting speaker's voice that their record no longer covers |
+
+### Suite settings, peers and health
+
+Mask needs argus-cortex 0.16, and takes three things from it.
+
+- **Other services' URLs** are found with cortex's `peers`: mask's own variable first, then the suite-wide one, then the default.
+
+  | Service | Mask's variable | Suite-wide |
+  |---|---|---|
+  | argus-darkroom | `ARGUS_MASK_DARKROOM_URL` | `ARGUS_DARKROOM_URL` |
+  | argus-curator | `ARGUS_MASK_CURATOR_URL` | `ARGUS_CURATOR_URL` |
+  | argus-retina-ocr | `ARGUS_MASK_OCR_URL` | `ARGUS_OCR_URL` |
+  | TTS (argus-echo's XTTS) | `ARGUS_MASK_TTS_URL` | `ARGUS_XTTS_URL` |
+
+  `off` in mask's variable turns that service off for mask whatever the suite says. A value that is not an `http(s)` URL is a configuration error at startup that names the variable; it is never read as "not set", so a typo cannot quietly skip a portrait check. `ARGUS_MASK_TTS_URL` is the exception in shape: it is a stream endpoint with its path, or `wyoming://host:port`, and is used as written. Only when it is unset does mask use `ARGUS_XTTS_URL`, a base URL, at `/synthesise/stream`.
+- **The suite file.** Values several services share (the broker URL and token, the URLs above) can live once in `$XDG_CONFIG_HOME/argus/suite.env` (`.config/argus/suite.env` in your home directory; mode 600; `python -m argus_cortex.settings --init` makes one) instead of in each repo's `.env`. Mask reads the broker settings and the peer URLs from it; anything set in mask's own environment wins. In a container the file is read at `/etc/argus/suite.env`: `compose.yaml` has the mount as a commented-out line, because compose cannot skip a bind mount whose file is missing. The file must belong to the user the container runs as, or to root.
+- **`GET /health`** on the server and the editor is cortex's `ServiceHealth`: `service` (`argus-mask`), `version`, `status`, `started_at`, `wire` (`mask_version`), `checks`, `read_only`, and `build` and `peer` when `ARGUS_BUILD` and `ARGUS_PEER` are set. Mask's own fields are beside it as before (the server's `driver`, `fps`, `free_vram_mb`, `faces`, `live`, `screens`, `aliases`; the editor's `ready`, `reason`, `building`, and `capabilities: ["editor"]`). It answers 200 whenever the process does: a driver that is down gives `status: "degraded"` and the `driver` check `ok: false`. `GET /health?checks=0` skips the check, for probes. `compose.yaml` labels the container (`argus.peer: mask`, `argus.service`, `argus.health`, `argus.port`) so argus-iris can list it.
 
 ### GPU leases (argus-iris)
 
@@ -305,7 +376,7 @@ Mask's own process uses no GPU, but it asks others for GPU work, and tells [argu
 - `a2f-live`: the Audio2Face server while a face speaks (the source socket, `/push`, `/speak`, a broadcast). `realtime`, never preempted, from the stream's first audio to its end. Mask asks without waiting, so a slow or absent broker never delays a mouth, and asks the broker alone: when it can't be reached there is no fallback, because the local lease is a host-wide lock that a broadcast would hold for hours.
 - `voice-make`: a TTS service (Miso) making a voice on the Voices page. `interactive`, and waited for; a refusal fails the job with the reason.
 
-It is off until `ARGUS_GPU_COORDINATOR=broker` and `ARGUS_GPU_BROKER_URL` are set. `ARGUS_GPU_BROKER_TOKEN` (secret, the host's `.env`), `ARGUS_GPU_TENANT_MANIFEST` (the image has `/app/gpu-tenant.yaml`) and `ARGUS_GPU_BROKER_FALLBACK` (`lease` or `none`) are cortex's; see `.env.example`.
+It is off until `ARGUS_GPU_BROKER_URL` is set; with it and `ARGUS_GPU_BROKER_TOKEN` (secret: the host's `.env`, or the suite file) nothing else is needed. `argus-mask serve` then registers `gpu-tenant.yaml` with iris at startup (the image has it at `/app/gpu-tenant.yaml`, where argus-cortex looks), keeps it registered and signs off on shutdown, so iris knows the Audio2Face resident before the first stream; a down broker never delays startup. Iris finds the `a2f` container through its node agent and calls the port it publishes, so publish a2f where the broker can reach it. `ARGUS_GPU_BROKER_FALLBACK` (`lease` or `none`) and `ARGUS_GPU_COORDINATOR` (to override the URL: `none` or `lease`) are cortex's. On a host with no broker, `ARGUS_GPU_COORDINATOR=lease` shares the GPU through the host lock file (voice making only; a live Audio2Face stream takes no lease).
 
 With `DRIVER=a2f` and no server answering, mask starts, `/health` reports the driver down, and a source is refused with the reason. It never falls back to `energy` on its own.
 
