@@ -646,8 +646,8 @@
       "package": "argus-echo",
       "repo": "smk762/argus-echo",
       "branch": "dev",
-      "commit": "0b77729dd330f01f629a206b12db98c7d60be10d",
-      "version": "0.3.1.dev19+g0b77729",
+      "commit": "38f1bb47b4d35cfca07a1b365a472db1c2c06a97",
+      "version": "0.3.1.dev21+g38f1bb4",
       "pages": [
         {
           "file": "README.md",
@@ -680,6 +680,11 @@
           "title": "Whisper (speech to text)"
         },
         {
+          "file": "docs/miso-api.md",
+          "slug": "miso-api",
+          "title": "Miso engine: HTTP API"
+        },
+        {
           "file": "docs/miso-config.md",
           "slug": "miso-config",
           "title": "Miso TTS configuration"
@@ -690,11 +695,10 @@
           "title": "Adding an engine"
         }
       ],
-      "held": [
-        "docs/miso-api.md"
-      ],
+      "held": [],
       "files": {
         "src/content/packages/echo/docs/api.md": "9dfcd703a091b571abce15c4d507184e43666a2b40669fd3e20ba0fc46d48495",
+        "src/content/packages/echo/docs/miso-api.md": "454758e603b24682c3ae0ce99482193bceddbc99a7535ae75d19ece020913b35",
         "src/content/packages/echo/docs/miso-config.md": "db72fd59b1a60dc905f629334cfac0ac802163d7f36a1661b805ae780b39c9e9",
         "src/content/packages/echo/docs/new-engine.md": "8a469c088d2e67fed3e3990e00df45b0dc92f2c43a34c813cd68b07ccadf18fe",
         "src/content/packages/echo/docs/qwen.md": "ac9b662e03197be880c43d45dc9d72ff0f1639e2d2d1a812dcbdfe64a33ff200",
