@@ -41,6 +41,10 @@ own Python package with its own HTTP service, and
   any screen ([Mask](https://mask.dragonhound.dev/)).
 - [**argus-scout**](/packages/scout) reads homelab telemetry from Prometheus and reports back with
   briefings and recommendations it never acts on.
+- [**argus-echo**](/packages/echo) is the speech servers: three text-to-speech engines behind one
+  HTTP contract, voice cloning with consent rules, and Whisper speech to text.
+- [**argus-iris**](/packages/iris) is the GPU lease broker: it decides which job may start on which
+  card and which idle model unloads first ([guided demo](https://iris.dragonhound.dev/)).
 - [**argus-cortex**](/packages/cortex) is the shared foundation the others build on: the taxonomy,
   wire-schema versioning, moderation clients and the optional lineage, vector
   and blob stores.

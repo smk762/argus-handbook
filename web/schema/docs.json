@@ -642,6 +642,93 @@
         "src/content/packages/scout/README.md": "01eaa51f2b49f1d3af4d9d8a9468daff56f66a2c3b8281c014699c2860858567"
       }
     },
+    "echo": {
+      "package": "argus-echo",
+      "repo": "smk762/argus-echo",
+      "branch": "dev",
+      "commit": "0b77729dd330f01f629a206b12db98c7d60be10d",
+      "version": "0.3.1.dev19+g0b77729",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-echo"
+        },
+        {
+          "file": "docs/api.md",
+          "slug": "api",
+          "title": "The echo contracts"
+        },
+        {
+          "file": "docs/voice-cloning.md",
+          "slug": "voice-cloning",
+          "title": "Voice cloning: getting the best results"
+        },
+        {
+          "file": "docs/xtts.md",
+          "slug": "xtts",
+          "title": "XTTS-v2 engine"
+        },
+        {
+          "file": "docs/qwen.md",
+          "slug": "qwen",
+          "title": "Qwen3-TTS engine"
+        },
+        {
+          "file": "docs/whisper.md",
+          "slug": "whisper",
+          "title": "Whisper (speech to text)"
+        },
+        {
+          "file": "docs/miso-config.md",
+          "slug": "miso-config",
+          "title": "Miso TTS configuration"
+        },
+        {
+          "file": "docs/new-engine.md",
+          "slug": "new-engine",
+          "title": "Adding an engine"
+        }
+      ],
+      "held": [
+        "docs/miso-api.md"
+      ],
+      "files": {
+        "src/content/packages/echo/docs/api.md": "9dfcd703a091b571abce15c4d507184e43666a2b40669fd3e20ba0fc46d48495",
+        "src/content/packages/echo/docs/miso-config.md": "db72fd59b1a60dc905f629334cfac0ac802163d7f36a1661b805ae780b39c9e9",
+        "src/content/packages/echo/docs/new-engine.md": "8a469c088d2e67fed3e3990e00df45b0dc92f2c43a34c813cd68b07ccadf18fe",
+        "src/content/packages/echo/docs/qwen.md": "ac9b662e03197be880c43d45dc9d72ff0f1639e2d2d1a812dcbdfe64a33ff200",
+        "src/content/packages/echo/docs/voice-cloning.md": "b8a8d8013d3624639d0dd3513ddd67626de5a8f9873fcb93b4ae22467b43b8e0",
+        "src/content/packages/echo/docs/whisper.md": "bd461146ceba8433947077508da025a75196c75f0182e0c7d3b21d922659c8bd",
+        "src/content/packages/echo/docs/xtts.md": "2b9cd4b44068146a6efb4db1772a427f2a04b4df3bc8efca5a20b837bcccb15e",
+        "src/content/packages/echo/README.md": "622d681f1f8203414685fcfe31ebc29dfa794b334d80a87d2288f982bf58ee1f"
+      }
+    },
+    "iris": {
+      "package": "argus-iris",
+      "repo": "smk762/argus-iris",
+      "branch": "dev",
+      "commit": "57056b0548c4535255556fe4a36f46c83ccc438e",
+      "version": "0.2.5.dev4+g57056b0",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-iris"
+        },
+        {
+          "file": "docs/operating.md",
+          "slug": "operating",
+          "title": "Operating argus-iris"
+        }
+      ],
+      "held": [],
+      "files": {
+        "public/package-docs/iris/docs/demo.png": "99c8c2382a21b073d06e00de5ca93246431ab0cb1b3c8d781fb287cb02353fd7",
+        "src/content/packages/iris/docs/operating.md": "0e575506f9955f4882b8643c210ee925dcdd999aa0663433e4aec072b41a8906",
+        "src/content/packages/iris/README.md": "f5cde495961a4194db6faeef5d2ea2e9da07c35185b70de32243354591b4ee57"
+      }
+    },
     "cortex": {
       "package": "argus-cortex",
       "repo": "smk762/argus-cortex",
