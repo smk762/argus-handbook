@@ -93,6 +93,14 @@ A LAM splat head ([lam/README.md](../lam/README.md)) is built from the one portr
 - **Flat light, and no smile.** The head keeps the portrait's light and expression for good. Ask for a large soft light directly in front and a relaxed, closed mouth.
 - **Head and shoulders, plain dark background.** The bust fades out below the collarbone, so a low neckline or a plain top reads best; the background is matted away.
 
+### Guided flow (prefer this)
+
+The editor's [guided head builder](../README.md#guided-head-builder) (`/guided.html`) runs source → portrait checks → LAM build → likeness / rest / turns / speech / age → pick → scene → save. It keeps the build record, refuses unsettled steps, measures turn limits, fits the rest set, and writes the face the server serves. Open it once darkroom, curator, retina OCR and the LAM image are configured (README § Configuration). Say the age in the subject (18 or over), and never a name.
+
+The subsections below are what that flow checks and scores. Use them when reading a refusal on the page, or when you want the same checks by hand.
+
+### By hand (CLI)
+
 Make a batch, build a head from each, and pick from a contact sheet, never from the portraits alone: two portraits that look alike can give heads that fail in different places.
 
 ```bash
@@ -113,16 +121,47 @@ Say the age in the subject (18 or over), and never a name. The subject is the on
 
 ### Pick the style: realistic character art, not a photograph
 
-LAM keeps a face's outline (rendered at the portrait's own camera, the landmarks land within about 3% of the eyes' spacing) but softens what is inside it: the lids sit lower over the iris, the lips thin, the skin loses its fine detail. A photograph comes out of that heavier and older than it went in; an idealised face with smooth, painted skin survives it (#151). So `--style` picks the template around the subject:
+LAM keeps a face's outline (rendered at the portrait's own camera, the landmarks land within about 3% of the eyes' spacing) but softens what is inside it: the lids sit lower over the iris, the lips thin, the skin loses its fine detail. A photograph comes out of that heavier and older than it went in; an idealised face with smooth, painted skin survives it (#151). So `--style` picks the template around the subject (the same templates live in `argus_mask.portraits`, which the guided editor's source step uses too, #167):
 
 | `--style` | Look | Verdict on the first batches |
 |---|---|---|
 | `character` | realistic adult proportions and light, a smooth painted finish | the pick: `lam-c1011` and `lam-c1022` |
 | `stylised` | a digital painting, idealised | good; a little more illustrated |
-| `photo` (default) | a studio photograph | a believable portrait, a head that reads about ten years older |
+| `photo` (CLI default) | a studio photograph | a believable portrait, a head that reads about ten years older |
 | `semireal` | a 3D render | too doll-like, and reads young: don't use it |
 
-Every style is a text prompt only, so the face stays `synthetic`. Say "late twenties" or older in the subject: a painted style pulls a face younger. Reject a portrait with a signature or text in it (FLUX paints one now and then), however clean its face.
+The guided editor defaults to `character`. Every style is a text prompt only, so the face stays `synthetic`. Say "late twenties" or older in the subject: a painted style pulls a face younger. Reject a portrait with a signature or text in it (FLUX paints one now and then), however clean its face.
+
+### Check the portrait before any GPU time
+
+The guided editor's portrait step (#168) runs before LAM: curator `face_source` (one adult identity, frontal, sharp, eyes open), retina OCR for a painted signature, and mask's own framing / expression / lighting / temples / photograph advisory. A temple-bare crop and a picture with text are caught; a photograph is an advisory with a restyle offer (#167). A required check that could not run (`not_checked`) blocks the build.
+
+### Score likeness, then fit its rest set
+
+After the head is built, `lam/likeness.py` scores it against the portrait at the portrait's own camera (colour per region, DINOv2 identity, lid aperture, lip fullness, landmark misfit). The scores that ranked character heads above photo heads on #151's set are kept; detail did not separate them and is not. The guided editor runs this as a job after the build.
+
+### Measure how far it turns
+
+LAM invents the sides of the head. Where the hairline or temples were bare in the portrait, a gap opens as the head turns or tips back — each head at its own angle (`splat-01` ~12° yaw / ~7° back; `syn-w101` holds ~20° / 8°). The guided turns step (#170) draws the contact-sheet poses with limits off, scores the skin-share rise at the outer temple (yaw) and top hairline (tip back), and writes measured `limits` into the build record (copied onto the face manifest on save, #176):
+
+```bash
+python lam/measure_turns.py --url http://127.0.0.1:8109 --face splat-01 --out work/splat-01.turns.json
+```
+
+Needs playwright and pillow. The editor runs it as a job (`POST /guided/{id}/candidates/{candidate}/turns`).
+
+### Compare apparent age
+
+LAM brings a photograph out about ten years older; character art holds its age (#151). The guided age step (#172) asks argus-curator `POST /faces` (MiVOLO) for the age of the portrait-crop and of the head render at the portrait's camera, writes both and the difference, and flags when the head reads much older (default ≥ 7 years). This is a likeness score, not the 18-or-over check (that one is on the portrait before any build).
+
+### Score the mouth in speech
+
+A head can look right at rest and stutter in speech. Lip-parting shapes held under speech fought every closure (#161: lips closed 42% → 62% of frames, direction reversals 52 → 38 once those shapes drop out under speech, in line with `splat-01`). The guided speech step (#171) plays one fixed, cleared take (`talk.json`, no TTS) on the candidate and on `splat-01`, reads the lip gap per frame with MediaPipe, and writes closed-share / reversals / opening p95 into the record (stutter and oversized mouth are advisories):
+
+```bash
+python lam/measure_speech.py --url http://127.0.0.1:8109 --face splat-01 \
+    --take src/argus_mask/editor/page/talk.json --model face_landmarker.task --out work/splat-01.speech.json
+```
 
 ### Fit its rest set to its portrait
 
@@ -136,6 +175,8 @@ python lam/fit_rest.py --url http://127.0.0.1:8109 --face lam-c1022 --portrait a
 It writes a rest set (`fit-<face>`) to define in `expressions.json` and choose for the face, its score against `warm`'s, and both renders. A slight smile is kept where the portrait has one. A splat head is drawn with a long lens by default (23° from 1.6 m, as the portrait was taken): from close up at a wide angle the same head reads narrower and longer.
 
 `FIT_SHAPE=1 lam/make_heads.sh ...` also searches the head's FLAME shape against the portrait at its own camera (about 10 minutes more per head). It helped `lam-s622` a little (misfit 0.033 to 0.026); it is off by default.
+
+Gaussian colour refine against the portrait (#173) is a measured spike only (`lam/refine_gaussians.py`, numbers in `lam/refine-spike.md`): frontal photo error drops, but likeness/turns/speech were not cleared for a default path, so there is no guided step and no `FIT_REFINE` yet.
 
 ## More than one view
 

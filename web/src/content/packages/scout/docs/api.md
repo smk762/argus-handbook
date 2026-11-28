@@ -25,11 +25,11 @@ Nothing on the API moves a recommendation past `approved`: there is no deploy ro
 | GET | `/api/reports/latest` | read auth | The newest report; `?kind=morning` for the newest of one kind. 404 when there is none. |
 | GET | `/api/policy/explain` | read auth | The effective heartbeat policy and what decides each open item now |
 | GET | `/wall` | read auth | The latest report, open items and pending decisions as plain text |
-| GET | `/health` | none | `{"status": "ok", "version": "..."}` |
+| GET | `/health` | none | The suite's `ServiceHealth` (argus-cortex): `status` (`ok`), `version`, `service` (`argus-scout`), `service_version`, `started_at`, `read_only`, and `peer` and `build` when the container is told them. Always 200 while scout answers. It runs no checks and holds nothing from the store. |
 | GET | `/metrics` | none | Prometheus exposition of scout's own state (below) |
 
 FastAPI's own `/docs`, `/redoc` and `/openapi.json` are served too, unless `server.read_auth` is on: they sit outside
-the bearer check, so `read_auth` turns them off.
+the bearer check, so `read_auth` turns them off. `/health` is not listed in `/openapi.json`.
 
 ```bash
 curl -s localhost:8400/wall
@@ -67,6 +67,10 @@ curl -s -X POST localhost:8400/api/reports/<REPORT_ID>/deliver \
   over `tts` or `speak` voice is held back and text still goes.
 - **Waits for the model.** The request returns when the report is stored and delivered, so allow for the model's
   `timeout`. The model call runs off the event loop; the rest of the API keeps answering meanwhile.
+- **`"kind": "suite"`** is the suite status summary: every Argus service with its health and version, read from
+  Prometheus when asked ([suite.md](suite.md#the-report)). It is always a plain listing: no model call, no
+  `llm_calls` charge, and `no_llm` changes nothing. `409` when no `suite_status` source is configured; `503` when
+  Prometheus can't answer, with nothing stored or sent.
 - A `status` report written here covers every open item, as a status report at a briefing slot does, not only the
   items the status cycle would announce.
 

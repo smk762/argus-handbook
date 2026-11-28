@@ -27,7 +27,7 @@ test fails if it drifts, so edit the model's descriptions, not this file. For a 
 | `files` | [files](#files) | section defaults |  | The policy files scout reads (reloaded while it runs). |
 | `store` | [store](#store) | section defaults |  | Where scout keeps its state. |
 | `memory` | [memory](#memory) | section defaults |  | What scout writes in the memory directory. |
-| `sources` | list of [sources: webhook](#sources-webhook) or [sources: json_poll](#sources-json_poll) or [plugin kind](#plugin-kinds) | `[]` |  | Where status events come from. |
+| `sources` | list of [sources: webhook](#sources-webhook) or [sources: json_poll](#sources-json_poll) or [sources: suite_status](#sources-suite_status) or [plugin kind](#plugin-kinds) | `[]` |  | Where status events come from. |
 | `channels` | list of [channels: text](#channels-text) or [channels: webhook](#channels-webhook) or [plugin kind](#plugin-kinds) | `[]` |  | Where reports go. |
 | `schedule` | [schedule](#schedule) | section defaults |  | Cycle intervals, the timezone and the briefings. |
 | `services` | [services](#services) | section defaults |  | Prometheus, the model and argus-echo. |
@@ -96,7 +96,7 @@ A list. Every entry has these keys; each kind adds its own below. A bad entry fa
 
 | Key | Type | Default | Constraints | Description |
 |---|---|---|---|---|
-| `kind` | text | required |  | `webhook`, `json_poll`, or a kind an installed plugin provides. |
+| `kind` | text | required |  | `webhook`, `json_poll`, `suite_status`, or a kind an installed plugin provides. |
 | `name` | text | required |  | Unique among sources. It is the `source` of every event this source produces, and the `{source}` in `POST /api/events/{source}`. |
 
 ### sources: webhook
@@ -142,6 +142,46 @@ sources:
       severity: labels.severity
     id: [labels.alertname, labels.instance]
 ```
+
+### sources: suite_status
+
+The Argus suite's own health and versions, read from Prometheus. See `argus_scout.suite`. Scout asks Prometheus about every series with an `argus_peer` label: `up`, a blackbox `/health` probe (`probe_success`, `probe_http_status_code`) and `argus_build_info`. It never probes a service itself. It raises a status event when a service is down, stays degraded, changes version, or runs different versions on two hosts, and resolves the event when the condition clears. `POST /api/reports` with `kind: suite` lists every service from the same reading.
+
+Guide: [suite.md](suite.md).
+
+| Key | Type | Default | Constraints | Description |
+|---|---|---|---|---|
+| `kind` | `suite_status` | required |  | Selects this kind. |
+| `prometheus_url` | URL or null | `null` |  | The Prometheus to ask. Unset: `services.prometheus_url`; with neither, the source is refused. |
+| `interval` | number | `60.0` | > 0 | Seconds between readings. |
+| `health_job` | text | `argus-health` | matches `^[A-Za-z_][A-Za-z0-9_.:-]{0,99}$` | The scrape job of the blackbox `/health` probe. Its own `up` says whether the blackbox exporter answered, not the service, so `up` is read from every other job. |
+| `down_for` | number | `120.0` | >= 60, <= 86400 | Seconds a service must have gone unanswered before it is reported down. Keep it at least twice the scrape interval. |
+| `degraded_for` | number | `600.0` | >= 60, <= 86400 | Seconds a service's `/health` must have gone without an `ok` before it is reported degraded. |
+| `deploy_window` | number | `3600.0` | >= 60, <= 604800 | Seconds a version change stays an open status event (and in the suite report) after it happened. |
+| `forget_after` | number | `86400.0` | >= 300, <= 2592000 | Seconds a service that is no longer a scrape target is still reported down. After that it is forgotten: scout takes it as removed on purpose. |
+| `severity` | [sources: suite_status: severity](#sources-suite_status-severity) | section defaults |  | The severity of each condition's event. |
+| `resolve_missing` | boolean | `true` |  | Close (`resolved`) this source's open events once a reading no longer finds the condition. |
+
+```yaml
+sources:
+  - kind: suite_status
+    name: suite
+    down_for: 120
+    degraded_for: 600
+    severity:
+      down: critical
+```
+
+#### sources: suite_status: severity
+
+The severity of each suite condition's status event. The heartbeat policy decides what a severity does.
+
+| Key | Type | Default | Constraints | Description |
+|---|---|---|---|---|
+| `down` | `info` \| `notice` \| `warning` \| `critical` | `warning` |  | A service that stopped answering, or is no longer a scrape target. |
+| `degraded` | `info` \| `notice` \| `warning` \| `critical` | `warning` |  | A service whose `/health` has answered `degraded` or `starting` (or an error) for `degraded_for`. |
+| `version_change` | `info` \| `notice` \| `warning` \| `critical` | `info` |  | A service now runs another version than it did (a deploy happened). |
+| `version_skew` | `info` \| `notice` \| `warning` \| `critical` | `notice` |  | Two hosts run different versions of the same peer. |
 
 ## channels
 
@@ -242,7 +282,7 @@ Needs the `mask` extra: `pip install "argus-scout[mask]"`.
 |---|---|---|---|---|
 | `kind` | `mask` | required |  | Selects this kind. |
 | `timeout` | number | `120.0` | > 0, <= 600 | Seconds the whole delivery may take: mask answers a push when the speech ends. |
-| `url` | URL | required |  | The argus-mask server. Only that host and port are contacted, with no redirects. |
+| `url` | URL | required |  | The argus-mask server. Only that host and port are contacted, with no redirects. Left out, it is the suite-wide `ARGUS_MASK_URL` (the environment, then the suite settings file; `argus_cortex.peers`). |
 | `face` | text | required | matches `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` | A face id or alias the server serves. |
 | `wait_ready` | number | `0.0` | >= 0, <= 300 | Seconds to wait for a ready screen before skipping. 0: skip at once. |
 | `poll_interval` | number | `1.0` | > 0, <= 30 | Seconds between readiness checks while waiting. |
@@ -370,7 +410,8 @@ argus-echo, the speech server voice channels play from. See `argus_scout.channel
 
 | Key | Type | Default | Constraints | Description |
 |---|---|---|---|---|
-| `url` | URL | required |  | The engine's root, e.g. `http://echo:8000`: scout calls `/health` and `/synthesise/stream` under it. |
+| `url` | URL | required |  | The engine's root, e.g. `http://echo:8000`: scout calls `/health` and `/synthesise/stream` under it. Leave it out and set `peer` to read the suite-wide URL instead. |
+| `peer` | `xtts` \| `tts` or null | `null` |  | The engine's suite-wide name, used only when `url` is left out: `xtts` (XTTS-v2) reads `ARGUS_XTTS_URL` and `tts` (Qwen3-TTS) reads `ARGUS_TTS_URL`, from the environment or the suite settings file (`argus_cortex.peers`). Clones and speakers are per engine, so scout never guesses which one. |
 | `voice_clone_id` | text or null | `null` |  | A clone stored on that engine (clones are per engine). Wins over `speaker`. Speech in a clone is marked as cloned: the `mask` channel discloses it over `transport: websocket` when `cloned_voice_consented` attests consent, and over http refuses it unless its `allow_cloned_voice` is set. |
 | `speaker` | text or null | `null` |  | A built-in speaker (`GET /speakers` on the engine). Neither this nor a clone: the engine's default voice. |
 | `language` | text | `en` |  | ISO language code. Miso speaks English only. |
@@ -459,4 +500,7 @@ Not in `scout.yaml`, on purpose:
 |---|---|---|
 | `SCOUT_CONFIG` | `argus-scout serve` | The config file when `--config` isn't given. The container image sets `/config/scout.yaml`. |
 | the variables `*_env` keys name | scout | Secrets: tokens, API keys, HMAC keys. |
-| `ARGUS_GPU_COORDINATOR`, `ARGUS_GPU_BROKER_URL`, `ARGUS_GPU_BROKER_TOKEN`, `ARGUS_GPU_TENANT_MANIFEST`, `ARGUS_GPU_LEASE_TIMEOUT_S`, ... | argus-cortex | The host-wide GPU coordinator every argus service on the host shares, used when `services.llm.gpu` is set. See [narrative.md](narrative.md#gpu-leases). |
+| `ARGUS_GPU_BROKER_URL`, `ARGUS_GPU_BROKER_TOKEN`, `ARGUS_GPU_COORDINATOR`, `ARGUS_GPU_LEASE_TIMEOUT_S`, ... | argus-cortex | The host-wide GPU coordinator every argus service on the host shares, used when `services.llm.gpu` is set. See [narrative.md](narrative.md#gpu-leases). |
+| `ARGUS_XTTS_URL`, `ARGUS_TTS_URL`, `ARGUS_MASK_URL` | scout, through `argus_cortex.peers` | The suite-wide URL of an argus-echo engine or of argus-mask, read only when `services.echo` (with `peer`) or a `mask` channel leaves its `url` out. A value that isn't an absolute http(s) URL fails `check config`, naming the variable. |
+| `ARGUS_ENV_FILE` | argus-cortex | The suite settings file: `~/.config/argus/suite.env` (mode 600), or `/etc/argus/suite.env` in a container. The `ARGUS_*` variables above may live there instead of in each service's `.env`; the environment and the `.env` beside `scout.yaml` win. `off` disables it. |
+| `ARGUS_PEER`, `ARGUS_BUILD` | argus-cortex | What `/health` reports as `peer` (the container's `argus.peer` label, `scout`) and `build` (an image build id). Optional. |
