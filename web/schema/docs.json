@@ -822,6 +822,44 @@
       "files": {
         "src/content/packages/cortex/README.md": "b3c26c7f3b1a9b7e6b23fb34c12c249e5d3f6d7cc4de77d0a19d19abf9fcf403"
       }
+    },
+    "auditor": {
+      "package": "ai-code-auditor",
+      "repo": "smk762/ai-code-auditor",
+      "branch": "dev",
+      "commit": "1777ae95356bfafd2fab49ffe1e8b710fe172b15",
+      "version": "0.2.2.dev97+g1777ae9",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "ai-code-auditor"
+        },
+        {
+          "file": "docs/spec.md",
+          "slug": "spec",
+          "title": "Product spec"
+        },
+        {
+          "file": "docs/deployment.md",
+          "slug": "deployment",
+          "title": "Deployment"
+        },
+        {
+          "file": "docs/repair-quickstart.md",
+          "slug": "repair-quickstart",
+          "title": "Repair pipeline — quickstart"
+        }
+      ],
+      "held": [],
+      "files": {
+        "public/package-docs/auditor/docs/img/module-cycles.png": "6ee45ecd22de0616635d50f874a9296bb9eed7d3652fc4af6ce7847da8da294b",
+        "public/package-docs/auditor/docs/img/packs.png": "20a6b37dc89f615b6c66d6ea301dedea09ccb959724f6e73db19d6a1ef11261d",
+        "src/content/packages/auditor/docs/deployment.md": "0aa86dca2800560a5d56013df81360cfd6d0e153b70731dc875bac31f8568b0f",
+        "src/content/packages/auditor/docs/repair-quickstart.md": "1152e4793db6670fa30454fe14e876f5266d2dab2cf6eda28d1636486574fe12",
+        "src/content/packages/auditor/docs/spec.md": "cedfd54557ff638a3db5ba2af4eff2c2cf21a439b7c05a710874c7455b5bc31c",
+        "src/content/packages/auditor/README.md": "35c1d692fcae91ba0e63e6860cb8face130085fa4d0143f9434a302fb1ef9f2b"
+      }
     }
   }
 }

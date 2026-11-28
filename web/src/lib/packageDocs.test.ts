@@ -15,7 +15,7 @@ import { PACKAGES, releaseOf, slugOf, titleOf, versionFrom, versionOf } from "..
 import { check, RECORD_PATH } from "../../scripts/package-docs.mjs";
 import { opsecFindings } from "./docsOpsec";
 import { PACKAGE_DOCS, packageDocs, packageHref, subPages, type PackageDocPage, type PackageDocs } from "./packageDocs";
-import { packageDoc, packageDocHeadings, readPackageDoc, resolveImage, resolveLink, slugger } from "./packageDocsRender";
+import { onPyPI, packageDoc, packageDocHeadings, readPackageDoc, resolveImage, resolveLink, slugger } from "./packageDocsRender";
 
 const record = JSON.parse(readFileSync(RECORD_PATH, "utf8"));
 
@@ -126,7 +126,8 @@ describe("the imported pages", () => {
     for (const pkg of PACKAGE_DOCS) {
       const markup = rendered.get(packageHref(pkg.short))!;
       expect(markup).toContain(`${pkg.package} ${pkg.version} @ ${pkg.commit.slice(0, 7)}`);
-      expect(markup).toContain(`href="https://pypi.org/project/${pkg.package}/"`);
+      if (onPyPI(pkg)) expect(markup).toContain(`href="https://pypi.org/project/${pkg.package}/"`);
+      else expect(markup, pkg.short).not.toContain(`href="https://pypi.org/project/${pkg.package}/"`);
       expect(markup).toContain(`href="https://github.com/${pkg.repo}/tree/${pkg.commit}"`);
       expect(markup).toContain(`href="https://github.com/${pkg.repo}/blob/${pkg.commit}/CHANGELOG.md"`);
       expect(markup).toMatch(/target="_blank" rel="noopener noreferrer"/);

@@ -12,7 +12,7 @@ import {
   type PackageDocPage,
   type PackageDocs,
 } from "@/lib/packageDocs";
-import { packageDoc, readPackageDoc } from "@/lib/packageDocsRender";
+import { onPyPI, packageDoc, readPackageDoc } from "@/lib/packageDocsRender";
 
 const LINK =
   "text-accent-purple-ink underline decoration-dotted underline-offset-2 hover:text-accent-purple-ink transition-colors";
@@ -106,7 +106,7 @@ export const COMPONENTS = {
     typeof src === "string" ? <img src={src} alt={alt ?? ""} loading="lazy" className="my-4 h-auto max-w-full rounded-lg border border-border" /> : null,
 };
 
-/** "argus-lens 0.11.1.dev4+g4804154 @ 4804154", with PyPI, the source and the changelog at that commit. */
+/** "argus-lens 0.11.1.dev4+g4804154 @ 4804154", with PyPI (when it is published there), the source and the changelog at that commit. */
 function PackageHeader({ pkg, page, title }: { pkg: PackageDocs; page: PackageDocPage | null; title: string }) {
   const links = packageLinks(pkg);
   return (
@@ -119,12 +119,16 @@ function PackageHeader({ pkg, page, title }: { pkg: PackageDocs; page: PackageDo
         <span className="mx-1.5 text-muted" aria-hidden>
           ·
         </span>
-        <ExternalLink href={links.pypi} className={LINK}>
-          PyPI
-        </ExternalLink>
-        <span className="mx-1.5 text-muted" aria-hidden>
-          ·
-        </span>
+        {onPyPI(pkg) ? (
+          <>
+            <ExternalLink href={links.pypi} className={LINK}>
+              PyPI
+            </ExternalLink>
+            <span className="mx-1.5 text-muted" aria-hidden>
+              ·
+            </span>
+          </>
+        ) : null}
         <ExternalLink href={links.source} className={LINK}>
           Source
         </ExternalLink>
