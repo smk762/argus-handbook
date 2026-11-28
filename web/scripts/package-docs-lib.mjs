@@ -161,6 +161,26 @@ export const PACKAGES = [
     // The generated CLI reference is titled with the bare command name.
     titles: { "docs/cli.md": "CLI reference" },
   },
+  {
+    short: "echo",
+    package: "argus-echo",
+    repo: "smk762/argus-echo",
+    // voice-cloning.md carries the consent rules next to the clone guide. engines/miso/README.md is outside docs/ and stays out.
+    docs: [
+      "README.md",
+      "docs/api.md",
+      "docs/voice-cloning.md",
+      "docs/xtts.md",
+      "docs/qwen.md",
+      "docs/whisper.md",
+      "docs/miso-config.md",
+      "docs/new-engine.md",
+    ],
+    // Its `/media/generated/…` URL example reads as a host mount to the opsec gate; reworded upstream.
+    held: ["docs/miso-api.md"],
+  },
+  // DESIGN.md and SECURITY.md stay out for now: the issue (#29) asks for the README and the operating guide.
+  { short: "iris", package: "argus-iris", repo: "smk762/argus-iris", docs: ["README.md", "docs/operating.md"] },
   // SUITE.md is left out: it is the suite map written for agents (every repo's CLAUDE.md imports it).
   { short: "cortex", package: "argus-cortex", repo: "smk762/argus-cortex", docs: ["README.md"] },
 ];
