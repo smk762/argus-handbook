@@ -20,11 +20,15 @@ import { join, posix } from "node:path";
 
 import type { Definition, Heading, Image, Link, Nodes, Root } from "mdast";
 
-import { repoImagePath, safeDecodeURI } from "../../scripts/package-docs-lib.mjs";
+import { PACKAGES, repoImagePath, safeDecodeURI } from "../../scripts/package-docs-lib.mjs";
 import { importedPage, packageHref, packageLinks, type PackageDocPage, type PackageDocs } from "./packageDocs";
 
 /** Where the imported files sit, relative to web/ (the build's working directory). */
 export const PACKAGE_CONTENT = join("src", "content", "packages");
+
+/** Whether the package is published on PyPI (the registry's `pypi: false` says it isn't). */
+export const onPyPI = (pkg: Pick<PackageDocs, "short">): boolean =>
+  PACKAGES.find((entry) => entry.short === pkg.short)?.pypi !== false;
 
 export function readPackageDoc(pkg: PackageDocs, page: PackageDocPage): string {
   return readFileSync(join(process.cwd(), PACKAGE_CONTENT, pkg.short, page.file), "utf8");

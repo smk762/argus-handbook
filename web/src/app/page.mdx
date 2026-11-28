@@ -52,6 +52,9 @@ own Python package with its own HTTP service, and
 - [**argus-cortex**](/packages/cortex) is the shared foundation the others build on: the taxonomy,
   wire-schema versioning, moderation clients and the optional lineage, vector
   and blob stores.
+- [**ai-code-auditor**](/packages/auditor) scans the suite's repos for bugs, security problems and
+  structural drift, and writes each as a work pack for a coding agent. A fix resolves its pack only
+  with a test that fails before it and passes after.
 
 These pages cover the whole suite. The concept pages for the Caption tool's
 controls stay next to the tool, in Studio:

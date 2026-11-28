@@ -14,7 +14,10 @@ import { posix } from "node:path";
  * links them on GitHub); `docs:pull` still gates them and says when one passes,
  * so it can move back to `docs` once the fix lands in the package's dev branch.
  *
- * @typedef {{ short: string, package: string, repo: string, docs: string[], held?: string[], titles?: Record<string, string> }} PackageEntry
+ * `pypi: false` marks a package that isn't published on PyPI, so its page links
+ * no PyPI project (one would 404).
+ *
+ * @typedef {{ short: string, package: string, repo: string, docs: string[], held?: string[], titles?: Record<string, string>, pypi?: false }} PackageEntry
  * @type {PackageEntry[]}
  */
 export const PACKAGES = [
@@ -195,10 +198,20 @@ export const PACKAGES = [
       "docs/privacy.md",
     ],
   },
-  // The detector servers: the README is its only doc.
-  { short: "retina", package: "argus-retina", repo: "smk762/argus-retina", docs: ["README.md"] },
+  // The detector servers: the README is its only doc. They ship as images, not on PyPI.
+  { short: "retina", package: "argus-retina", repo: "smk762/argus-retina", docs: ["README.md"], pypi: false },
   // SUITE.md is left out: it is the suite map written for agents (every repo's CLAUDE.md imports it).
   { short: "cortex", package: "argus-cortex", repo: "smk762/argus-cortex", docs: ["README.md"] },
+  {
+    short: "auditor",
+    package: "ai-code-auditor",
+    repo: "smk762/ai-code-auditor",
+    docs: ["README.md", "docs/spec.md", "docs/deployment.md", "docs/repair-quickstart.md"],
+    // spec.md opens with "AI Code Auditor - Current Product Spec", which repeats the package name.
+    titles: { "docs/spec.md": "Product spec" },
+    // Installed from its repo, not PyPI.
+    pypi: false,
+  },
 ];
 
 export const BRANCH = "dev";
