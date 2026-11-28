@@ -195,6 +195,8 @@ export const PACKAGES = [
       "docs/privacy.md",
     ],
   },
+  // The detector servers: the README is its only doc.
+  { short: "retina", package: "argus-retina", repo: "smk762/argus-retina", docs: ["README.md"] },
   // SUITE.md is left out: it is the suite map written for agents (every repo's CLAUDE.md imports it).
   { short: "cortex", package: "argus-cortex", repo: "smk762/argus-cortex", docs: ["README.md"] },
 ];
