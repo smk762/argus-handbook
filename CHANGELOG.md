@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - argus-echo under `/packages/echo/` (#28): its README, the contracts (`docs/api.md`, with the consent rules), the voice-cloning guide, the XTTS, Qwen and Whisper guides, Miso's API and configuration, and "Adding an engine", with a home-page entry.
+- argus-herald under `/packages/herald/` (#30): its README and `docs/*.md` (digests and assisted drafting, posts that aren't releases, platforms and scheduling, media and the clip registry, metrics, the privacy gate), with a home-page entry.
+- argus-retina under `/packages/retina/`: its README (the detector images, the HTTP contract, SingGuard, faces), with a home-page entry.
 - argus-iris under `/packages/iris/` (#29): its README (with the guided demo and its screenshot) and the operating guide, with a home-page entry.
 - argus-puppet under `/packages/puppet/`: its README and `docs/*.md` (overview, metrics, pose vector, conditioning, models, deploy, server, CLI), with a home-page entry.
 - Body pose (`/setup/body-pose`): where argus-puppet sits between curator, Studio and Cull, forge, proof and lens, how to run it, and its limits (synthetic calibration, unusable crops, the COCO-WholeBody terms, GPU lease contention, the pose library's age check). The GPU host and MiVOLO service pages list puppet, and Moderation, What to run for which UI, the setup index and the home page link it.
