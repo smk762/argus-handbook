@@ -63,13 +63,33 @@ describe("gateDenylist", () => {
 const ROOT = join(__dirname, "..");
 const PUBLISHED = [join(ROOT, "app"), join(ROOT, "content")];
 
+/**
+ * Whether the gate reads a file: every file under a published tree, so a `.js`, `.json`, `.yaml`, `.txt` or `.svg`
+ * can't carry an address past it, except tests and binary assets (images, icons, fonts), which hold no text.
+ */
+export function gated(name: string): boolean {
+  return !/\.test\.[cm]?[jt]sx?$/.test(name) && !/\.(png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf)$/i.test(name);
+}
+
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) return files(p);
-    return /\.(md|mdx|ts|tsx)$/.test(name) && !name.endsWith(".test.ts") ? [p] : [];
+    return gated(name) ? [p] : [];
   });
 }
+
+// Audit pack-argus-handbook-58360036b3: the gate reads every text file, not four extensions.
+describe("gated", () => {
+  it("reads every text source and skips only tests and binary assets", () => {
+    for (const name of ["page.mdx", "a.md", "x.ts", "y.tsx", "route.js", "c.jsx", "data.json", "nav.yaml", "nav.yml", "snippet.txt", ".env.example", "icon.svg", "globals.css"]) {
+      expect(gated(name), name).toBe(true);
+    }
+    for (const name of ["docsOpsec.test.ts", "Nav.test.tsx", "logo.png", "photo.JPG", "favicon.ico", "font.woff2"]) {
+      expect(gated(name), name).toBe(false);
+    }
+  });
+});
 
 describe("published docs opsec gate", () => {
   // Read inside the tests, so a missing secret in GitHub Actions fails them rather than the file's collection.
