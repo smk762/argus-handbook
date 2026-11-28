@@ -180,6 +180,21 @@ export const PACKAGES = [
   },
   // DESIGN.md and SECURITY.md stay out for now: the issue (#29) asks for the README and the operating guide.
   { short: "iris", package: "argus-iris", repo: "smk762/argus-iris", docs: ["README.md", "docs/operating.md"] },
+  {
+    short: "herald",
+    package: "argus-herald",
+    repo: "smk762/argus-herald",
+    // The research notes and reports are lab notebooks and stay out.
+    docs: [
+      "README.md",
+      "docs/digests.md",
+      "docs/posts.md",
+      "docs/channels.md",
+      "docs/media.md",
+      "docs/metrics.md",
+      "docs/privacy.md",
+    ],
+  },
   // SUITE.md is left out: it is the suite map written for agents (every repo's CLAUDE.md imports it).
   { short: "cortex", package: "argus-cortex", repo: "smk762/argus-cortex", docs: ["README.md"] },
 ];

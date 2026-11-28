@@ -733,6 +733,60 @@
         "src/content/packages/iris/README.md": "f5cde495961a4194db6faeef5d2ea2e9da07c35185b70de32243354591b4ee57"
       }
     },
+    "herald": {
+      "package": "argus-herald",
+      "repo": "smk762/argus-herald",
+      "branch": "dev",
+      "commit": "a461ca48bf7ff79612832b756a4357831aa64ccb",
+      "version": "0.5.1.dev9+ga461ca4",
+      "pages": [
+        {
+          "file": "README.md",
+          "slug": "",
+          "title": "argus-herald"
+        },
+        {
+          "file": "docs/digests.md",
+          "slug": "digests",
+          "title": "Digests and assisted drafting"
+        },
+        {
+          "file": "docs/posts.md",
+          "slug": "posts",
+          "title": "Posts that aren't releases"
+        },
+        {
+          "file": "docs/channels.md",
+          "slug": "channels",
+          "title": "Platforms, audiences and scheduling"
+        },
+        {
+          "file": "docs/media.md",
+          "slug": "media",
+          "title": "Media and the clip registry"
+        },
+        {
+          "file": "docs/metrics.md",
+          "slug": "metrics",
+          "title": "Metrics"
+        },
+        {
+          "file": "docs/privacy.md",
+          "slug": "privacy",
+          "title": "Privacy gate"
+        }
+      ],
+      "held": [],
+      "files": {
+        "src/content/packages/herald/docs/channels.md": "b9ad19ec79bc84008677181a091c6cba8b2e09dee04eec803c307f4c8133c203",
+        "src/content/packages/herald/docs/digests.md": "3cd831dcb08aa52a4aa280b7134ad0caebbd6adb8fe29588efd60fe5d316a95a",
+        "src/content/packages/herald/docs/media.md": "4937fa49f6b93e7456996202d67e78ea5798b7c92d18e87e4ef7fbfde3d07dc6",
+        "src/content/packages/herald/docs/metrics.md": "daf446817470a72ae1eecb634e3787857b8004f9fb8e911321ab1bcb8e62c841",
+        "src/content/packages/herald/docs/posts.md": "b85617231fc66dbd9ebbfce9b8bec8a75e5a8576df6e6a37c4c406c0843d5671",
+        "src/content/packages/herald/docs/privacy.md": "66e5c10e9bdee8005fac979e30a0b0bf6253dfd482ea5e30d0ef0a4484b50cb2",
+        "src/content/packages/herald/README.md": "76afddde26be77040ec4134275420db60b222087bfb8351db0b051be8be0f138"
+      }
+    },
     "cortex": {
       "package": "argus-cortex",
       "repo": "smk762/argus-cortex",
